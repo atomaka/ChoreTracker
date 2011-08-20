@@ -1,0 +1,14 @@
+## Interface: 42000
+## Title: ChoreTracker
+## Version: @project-version@
+## Author: Gaffer
+## Notes: Reminding you to do your chores just like your mother.
+## DefaultState: enabled 
+## SavedVariables: ChoreTrackerDB
+
+Libs\LibStub\LibStub.lua
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceEvent-3.0\AceEvent-3.0.xml
+
+ChoreTracker.lua
