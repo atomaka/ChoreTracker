@@ -11,6 +11,7 @@ local defaults = {
 	profile = {
 		valorPoints = {},
 		lockouts = {},
+		updated = {},
 	}
 }
 
@@ -19,6 +20,12 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
+	local name = UnitName('player')
+
+	if self.db.profile.lockouts[name] == nil then
+		self.db.profile.lockouts[name] = {}
+	end
+	
 	self:RegisterEvent('UPDATE_INSTANCE_INFO','StoreChores')
 end
 
@@ -35,11 +42,7 @@ function core:StoreChores()
 		for i = 0, savedInstances do
 			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
 			
-			if trackedInstances[instanceName] == true then
-				if self.db.profile.lockouts[name] == nil then
-					self.db.profile.lockouts[name] = {}
-				end
-				
+			if trackedInstances[instanceName] == true then	
 				if instanceReset > 0 then
 					self.db.profile.lockouts[name][instanceName] = defeatedBosses
 				else
