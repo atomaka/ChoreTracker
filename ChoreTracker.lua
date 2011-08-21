@@ -26,7 +26,14 @@ function core:OnEnable()
 		self.db.profile.lockouts[name] = {}
 	end
 	
+	self:RegisterChatCommand('ct','ViewChores');
 	self:RegisterEvent('UPDATE_INSTANCE_INFO','UpdateChores')
+end
+
+function core:ViewChores()
+	for k,v in pairs(self.db.profile.valorPoints) do
+		print(k,'has',v,'Valor Points this week.')
+	end
 end
 
 function core:UpdateChores()
