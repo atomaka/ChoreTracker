@@ -19,7 +19,10 @@ end
 function core:StoreValorPoints()
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 	local name = UnitName('player')
+	local level = UnitLevel('player')
 	
-	self.db.profile.valorPoints[name] = earnedThisWeek
-	print('Storing',earnedThisWeek,'for',name)
+	if(level == 85) then
+		self.db.profile.valorPoints[name] = earnedThisWeek
+		print('Storing',earnedThisWeek,'for',name)
+	end
 end
