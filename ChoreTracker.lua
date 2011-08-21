@@ -35,16 +35,19 @@ function core:StoreChores()
 	local level = UnitLevel('player')
 	
 	if(level == 85) then
+		--store Valor Points
 		self.db.profile.valorPoints[name] = earnedThisWeek
 
+		--store Saved Instances
 		local savedInstances = GetNumSavedInstances()
-		
 		for i = 0, savedInstances do
 			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
 			
 			if trackedInstances[instanceName] == true then	
 				if instanceReset > 0 then
-					self.db.profile.lockouts[name][instanceName] = defeatedBosses
+					self.db.profile.lockouts[name][instanceName] = {}
+					self.db.profile.lockouts[name][instanceName].defeatedBosses = defeatedBosses
+					self.db.profile.lockouts[name][instanceName].resetTime = time() + instanceReset
 				else
 					self.db.profile.lockouts[name][instanceName] = nil
 				end
