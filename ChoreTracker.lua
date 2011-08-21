@@ -19,7 +19,7 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
-	self:RegisterEvent('PLAYER_ENTERING_WORLD','StoreChores')
+	self:RegisterEvent('UPDATE_INSTANCE_INFO','StoreChores')
 end
 
 function core:StoreChores()
