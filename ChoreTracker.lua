@@ -1,6 +1,12 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker','AceConsole-3.0','AceEvent-3.0')
 local core = ChoreTracker
 
+local trackedInstances = {
+	['Baradin Hold'] = true,
+	['Firelands'] = true,
+}
+
+
 local defaults = {
 	profile = {
 		valorPoints = {},
@@ -13,10 +19,10 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
-	self:RegisterEvent('PLAYER_ENTERING_WORLD','StoreValorPoints')
+	self:RegisterEvent('PLAYER_ENTERING_WORLD','StoreChores')
 end
 
-function core:StoreValorPoints()
+function core:StoreChores()
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 	local name = UnitName('player')
 	local level = UnitLevel('player')
@@ -24,5 +30,27 @@ function core:StoreValorPoints()
 	if(level == 85) then
 		self.db.profile.valorPoints[name] = earnedThisWeek
 		print('Storing',earnedThisWeek,'for',name)
+		
+		savedInstances = GetNumSavedInstances()
+		
+		for i = 0, savedInstances do
+			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
+			
+			if trackedInstances[instanceName] == true then
+				print('Found',instanceName)
+				if self.db.profile.lockouts[name] == nil then
+					self.db.profile.lockouts[name] = {}
+				end
+				
+				if instanceReset > 0 then
+					print('saving',instanceName,'for',name,'with',defeatedBosses,'defeated')
+					self.db.profile.lockouts[name][instanceName] = defeatedBosses
+				else
+					print('resetting',instanceName)
+					self.db.profile.lockouts[name][instanceName] = nil
+				end
+			end
+		end
+		
 	end
 end
