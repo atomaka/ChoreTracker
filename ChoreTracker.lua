@@ -7,13 +7,16 @@ local trackedInstances = {
 	['Firelands'] = 'FL',
 }
 
-
 local defaults = {
 	global = {
+		classes = {},
 		valorPoints = {},
 		lockouts = {},
 	}
 }
+
+local classColors = {}
+local flagColors = {}
 
 local function anchor_OnEnter(self)
 	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB',defaults,'Default')
@@ -37,15 +40,24 @@ local function anchor_OnEnter(self)
 	--go through all stored raiders
 	for character,instancesTable in pairs(self.db.global.lockouts) do
 		local characterLine = self.tooltip:AddLine('')
-		self.tooltip:SetCell(characterLine,1,character,nil,'LEFT')
-		self.tooltip:SetCell(characterLine,2,self.db.global.valorPoints[character],nil,'LEFT')
+
+		local class = self.db.global.classes[character]
+		self.tooltip:SetCell(characterLine,1,character,classColors[class],'LEFT')
+		
+		local valorPointColor
+		if self.db.global.valorPoints[character] == 980 then
+			valorPointColor = flagColors['green']
+		else
+			valorPointColor = flagColors['red']
+		end
+		self.tooltip:SetCell(characterLine,2,self.db.global.valorPoints[character],valorPointColor,'LEFT')
 		
 		local nextColumn = 3
 		for instance,abbreviation in pairs(trackedInstances) do
 			if self.db.global.lockouts[character][instance] ~= nil then
-				self.tooltip:SetCell(characterLine,nextColumn,self.db.global.lockouts[character][instance].defeatedBosses,nil,'LEFT')
+				self.tooltip:SetCell(characterLine,nextColumn,self.db.global.lockouts[character][instance].defeatedBosses,flagColors['red'],'LEFT')
 			else
-				self.tooltip:SetCell(characterLine,nextColumn,'0',nil,'LEFT')
+				self.tooltip:SetCell(characterLine,nextColumn,'0',flagColors['green'],'LEFT')
 			end
 			nextColumn = nextColumn + 1
 		end
@@ -72,10 +84,36 @@ function core:OnInitialize()
 	ChoresDisplay:SetWidth(50)
 	ChoresDisplay:Show()
 	
-	self.ChoresDisplay = ChoresDisplay
+	ChoresDisplay:EnableMouse(true)
+	ChoresDisplay:SetMovable(true)
+	ChoresDisplay:RegisterForDrag('LeftButton')
 	
-	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
-	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
+	ChoresDisplay:SetScript('OnDragStart',ChoresDisplay.StartMoving)
+	ChoresDisplay:SetScript('OnDragStop',ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnHide',ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnEnter',anchor_OnEnter)
+	ChoresDisplay:SetScript('OnLeave',anchor_OnLeave)
+	
+	for class,color in pairs(RAID_CLASS_COLORS) do
+		class = class:lower()
+		if class == 'deathknight' then
+			class = 'death knight'
+		end
+		
+		if not classColors[class] then 
+			classColors[class] = CreateFont('ClassFont' .. class)
+			classColors[class]:CopyFontObject(GameTooltipText)
+		end
+		classColors[class]:SetTextColor(color.r,color.g,color.b)
+	end
+	
+	flagColors['green'] = CreateFont('FlagFontGreen')
+	flagColors['green']:CopyFontObject(GameTooltipText)
+	flagColors['green']:SetTextColor(0,255,0)
+	
+	flagColors['red'] = CreateFont('FlagFontRed')
+	flagColors['red']:CopyFontObject(GameTooltipText)
+	flagColors['red']:SetTextColor(255,0,0)
 end
 
 function core:OnEnable()
@@ -103,6 +141,10 @@ function core:UpdateChores()
 	if(level == 85) then
 		local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 		local name = UnitName('player')
+		
+		--set class if not already set
+		local class = UnitClass('player')
+		self.db.global.classes[name] = class:lower()
 		
 		--store Valor Points
 		self.db.global.valorPoints[name] = earnedThisWeek
