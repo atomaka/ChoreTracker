@@ -1,9 +1,10 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker','AceConsole-3.0','AceEvent-3.0')
+local LibQTip = LibStub('LibQTip-1.0')
 local core = ChoreTracker
 
 local trackedInstances = {
-	['Baradin Hold'] = true,
-	['Firelands'] = true,
+	['Baradin Hold'] = 'BH',
+	['Firelands'] = 'FL',
 }
 
 
@@ -14,8 +15,67 @@ local defaults = {
 	}
 }
 
-function core:OnInitialize()	
+local function anchor_OnEnter(self)
 	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB',defaults,'Default')
+	local columnCount = 2
+	for instance,abbreviation in pairs(trackedInstances) do
+		columnCount = columnCount + 1
+	end
+	
+	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip',columnCount,'LEFT','CENTER','RIGHT')
+
+	--create the tooltip header
+	self.tooltip:AddHeader('')
+	local valorPointColumn = self.tooltip:AddColumn('LEFT')
+	self.tooltip:SetCell(1,1,'Chore')
+	self.tooltip:SetCell(1,2,'VP')
+	local nextColumn = 3
+	for instance,abbreviation in pairs(trackedInstances) do
+		self.tooltip:SetCell(1,nextColumn,abbreviation,nil,'LEFT')
+		nextColumn = nextColumn + 1
+	end
+	--go through all stored raiders
+	for character,instancesTable in pairs(self.db.global.lockouts) do
+		local characterLine = self.tooltip:AddLine('')
+		self.tooltip:SetCell(characterLine,1,character,nil,'LEFT')
+		self.tooltip:SetCell(characterLine,2,self.db.global.valorPoints[character],nil,'LEFT')
+		
+		local nextColumn = 3
+		for instance,abbreviation in pairs(trackedInstances) do
+			if self.db.global.lockouts[character][instance] ~= nil then
+				self.tooltip:SetCell(characterLine,nextColumn,self.db.global.lockouts[character][instance].defeatedBosses,nil,'LEFT')
+			else
+				self.tooltip:SetCell(characterLine,nextColumn,'0',nil,'LEFT')
+			end
+			nextColumn = nextColumn + 1
+		end
+	end
+	
+	self.tooltip:SmartAnchorTo(self)
+	self.tooltip:Show()
+end
+
+local function anchor_OnLeave(self)
+	LibQTip:Release(self.tooltip)
+	self.tooltip = nil
+end
+
+function core:OnInitialize()
+	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB',defaults,'Default')
+	
+	local ChoresDisplay = CreateFrame('Frame','ChoreTrackerFrame',UIParent)
+	ChoresDisplay:SetPoint('CENTER')
+	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil,'BACKGROUND')
+	ChoresDisplay.background:SetAllPoints(true)
+	ChoresDisplay.background:SetTexture(1,0.5,0,0.5)
+	ChoresDisplay:SetHeight(50)
+	ChoresDisplay:SetWidth(50)
+	ChoresDisplay:Show()
+	
+	self.ChoresDisplay = ChoresDisplay
+	
+	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
+	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
 end
 
 function core:OnEnable()
@@ -30,43 +90,7 @@ function core:OnEnable()
 end
 
 function core:ViewChores()
-	local ChoresDisplay = CreateFrame('Frame','ChoreTrackerFrame',UIParent)
-	ChoresDisplay:SetPoint('CENTER')
-	ChoresDisplay:EnableMouse(true)
-	ChoresDisplay:SetMovable(true)
-	ChoresDisplay:RegisterForDrag('LeftButton')
-	
-	ChoresDisplay:SetScript('OnDragStart',ChoresDisplay.StartMoving)
-	ChoresDisplay:SetScript('OnDragStop',ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnHide',ChoresDisplay.StopMovingOrSizing)
-	
-	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil,'BACKGROUND')
-	ChoresDisplay.background:SetAllPoints(true)
-	ChoresDisplay.background:SetTexture(1,0.5,0,0.5)
-	
-	ChoresDisplay.lines = {}
-	local lineCount = 1
-	for k,v in pairs(self.db.global.valorPoints) do
-		local line = ChoresDisplay:CreateFontString(nil,'OVERLAY','GameFontNormal')
-		ChoresDisplay.lines[lineCount] = line
-		
-		if lineCount > 1 then
-			line:SetPoint('TOPLEFT',ChoresDisplay.lines[lineCount - 1],'BOTTOMLEFT',0,0)
-			line:SetPoint('TOPRIGHT',ChoresDisplay.lines[lineCount - 1],'BOTTOMRIGHT',0,0)
-		else
-			line:SetPoint('TOPLEFT',ChoresDisplay,'TOPLEFT',5,-5)
-			line:SetPoint('TOPRIGHT',ChoresDisplay,'TOPRIGHT',5,-5)
-		end
-		
-		line:SetFormattedText("%s - %d",k,v)
-		lineCount = lineCount + 1
-	end
-	
-	local height = select(2,GameFontNormal:GetFont())
-	ChoresDisplay:SetHeight(height * lineCount)
-	ChoresDisplay:SetWidth(300)
-	
-	ChoresDisplay:Show()
+
 end
 
 function core:UpdateChores()
@@ -88,7 +112,7 @@ function core:UpdateChores()
 		for i = 1, savedInstances do
 			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
 			
-			if trackedInstances[instanceName] == true then	
+			if trackedInstances[instanceName] ~= nil then
 				if instanceReset > 0 then
 					self.db.global.lockouts[name][instanceName] = {}
 					self.db.global.lockouts[name][instanceName].defeatedBosses = defeatedBosses
