@@ -8,7 +8,7 @@ local trackedInstances = {
 
 
 local defaults = {
-	profile = {
+	global = {
 		valorPoints = {},
 		lockouts = {},
 	}
@@ -30,41 +30,70 @@ function core:OnEnable()
 end
 
 function core:ViewChores()
+	local ChoresDisplay = CreateFrame('Frame','ChoreTrackerFrame',UIParent)
+	ChoresDisplay:SetPoint('CENTER')
+	ChoresDisplay:EnableMouse(true)
+	ChoresDisplay:SetMovable(true)
+	ChoresDisplay:RegisterForDrag('LeftButton')
+	
+	ChoresDisplay:SetScript('OnDragStart',ChoresDisplay.StartMoving)
+	ChoresDisplay:SetScript('OnDragStop',ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnHide',ChoresDisplay.StopMovingOrSizing)
+	
+	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil,'BACKGROUND')
+	ChoresDisplay.background:SetAllPoints(true)
+	ChoresDisplay.background:SetTexture(1,0.5,0,0.5)
+	
+	ChoresDisplay.lines = {}
+	local lineCount = 1
 	for k,v in pairs(self.db.global.valorPoints) do
-		print(k,'has',v,'Valor Points this week.')
+		local line = ChoresDisplay:CreateFontString(nil,'OVERLAY','GameFontNormal')
+		ChoresDisplay.lines[lineCount] = line
+		
+		if lineCount > 1 then
+			line:SetPoint('TOPLEFT',ChoresDisplay.lines[lineCount - 1],'BOTTOMLEFT',0,0)
+			line:SetPoint('TOPRIGHT',ChoresDisplay.lines[lineCount - 1],'BOTTOMRIGHT',0,0)
+		else
+			line:SetPoint('TOPLEFT',ChoresDisplay,'TOPLEFT',5,-5)
+			line:SetPoint('TOPRIGHT',ChoresDisplay,'TOPRIGHT',5,-5)
+		end
+		
+		line:SetFormattedText("%s - %d",k,v)
+		lineCount = lineCount + 1
 	end
+	
+	local height = select(2,GameFontNormal:GetFont())
+	ChoresDisplay:SetHeight(height * lineCount)
+	ChoresDisplay:SetWidth(300)
+	
+	ChoresDisplay:Show()
 end
 
 function core:UpdateChores()
-	--print('Updating Chores.')
 	local level = UnitLevel('player')
+	
+	--reset data if necessary
+	core:ResetInstances()
+	core:ResetValorPoints()
 	
 	if(level == 85) then
 		local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 		local name = UnitName('player')
 		
-		--reset data if necessary
-		core:ResetInstances()
-		core:ResetValorPoints()
-		
 		--store Valor Points
-		--print('Storing',earnedThisWeek,'Valor points for',name)
 		self.db.global.valorPoints[name] = earnedThisWeek
 
 		--store Saved Instances
-		--print('Storing instances for',name)
 		local savedInstances = GetNumSavedInstances()
 		for i = 1, savedInstances do
 			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
 			
 			if trackedInstances[instanceName] == true then	
 				if instanceReset > 0 then
-					--print('Saving',instanceName,'with',defeatedBosses,'defeated bosses for',name)
 					self.db.global.lockouts[name][instanceName] = {}
 					self.db.global.lockouts[name][instanceName].defeatedBosses = defeatedBosses
 					self.db.global.lockouts[name][instanceName].resetTime = time() + instanceReset
 				else
-					--print('Resetting',instanceName,'for',name)
 					self.db.global.lockouts[name][instanceName] = nil
 				end
 			end
@@ -76,10 +105,8 @@ end
 function core:ResetInstances()
 	for k,v in pairs(self.db.global.lockouts) do
 		for x,y in pairs(self.db.global.lockouts[k]) do
-			--print('Comparing',x,'for',k,':',y.resetTime,'<',time())
 			if y.resetTime < time() then
-				--print('Passed resetTime for',k,x)
-				--self.db.global.lockouts[k][x] = nil
+				self.db.global.lockouts[k][x] = nil
 			end
 		end
 	end

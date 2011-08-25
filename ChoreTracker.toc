@@ -10,5 +10,6 @@ Libs\LibStub\LibStub.lua
 Libs\AceAddon-3.0\AceAddon-3.0.xml
 Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
+Libs\LibQTip-1.0\lib.xml
 
 ChoreTracker.lua
