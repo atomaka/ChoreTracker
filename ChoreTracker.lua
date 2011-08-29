@@ -30,7 +30,7 @@ local function anchor_OnEnter(self)
 	--create the tooltip header
 	self.tooltip:AddHeader('')
 	local valorPointColumn = self.tooltip:AddColumn('LEFT')
-	self.tooltip:SetCell(1,1,'Chore')
+	self.tooltip:SetCell(1,1,'')
 	self.tooltip:SetCell(1,2,'VP')
 	local nextColumn = 3
 	for instance,abbreviation in pairs(trackedInstances) do
@@ -46,9 +46,9 @@ local function anchor_OnEnter(self)
 		
 		local valorPointColor
 		if self.db.global.valorPoints[character] == 980 then
-			valorPointColor = flagColors['green']
-		else
 			valorPointColor = flagColors['red']
+		else
+			valorPointColor = flagColors['green']
 		end
 		self.tooltip:SetCell(characterLine,2,self.db.global.valorPoints[character],valorPointColor,'LEFT')
 		
@@ -100,10 +100,8 @@ function core:OnInitialize()
 			class = 'death knight'
 		end
 		
-		if not classColors[class] then 
-			classColors[class] = CreateFont('ClassFont' .. class)
-			classColors[class]:CopyFontObject(GameTooltipText)
-		end
+		classColors[class] = CreateFont('ClassFont' .. class)
+		classColors[class]:CopyFontObject(GameTooltipText)
 		classColors[class]:SetTextColor(color.r,color.g,color.b)
 	end
 	
