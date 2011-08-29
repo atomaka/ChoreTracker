@@ -1,6 +1,6 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker','AceConsole-3.0','AceEvent-3.0')
-local LibQTip = LibStub('LibQTip-1.0')
 local core = ChoreTracker
+local LibQTip
 
 local trackedInstances = {
 	['Baradin Hold'] = 'BH',
@@ -115,6 +115,7 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
+	LibQTip = LibStub('LibQTip-1.0')
 	local name = UnitName('player')
 
 	if self.db.global.lockouts[name] == nil then
