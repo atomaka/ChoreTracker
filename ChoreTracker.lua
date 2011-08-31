@@ -158,9 +158,11 @@ function core:UpdateChores()
 		local vpReset = core:GetNextVPReset()
 		
 		--store Valor Points
-		self.db.global.valorPoints[name] = {}
-		self.db.global.valorPoints[name].points = earnedThisWeek
-		self.db.global.valorPoints[name].resetTime = vpReset
+		if vpReset ~= nil then
+			self.db.global.valorPoints[name] = {}
+			self.db.global.valorPoints[name].points = earnedThisWeek
+			self.db.global.valorPoints[name].resetTime = vpReset
+		end
 
 		--store Saved Instances
 		local savedInstances = GetNumSavedInstances()
@@ -228,7 +230,7 @@ function core:GetNextVPReset()
 
 			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
 
-			if(title == 'Baradin Hold') then
+			if title == 'Baradin Hold' then
 				resetDate = { year = year, month = month + monthOffset, day = day }
 			end
 		end
@@ -251,5 +253,7 @@ function core:GetNextVPReset()
 		resetDate.sec = resetTime.sec
 
 		return time(resetDate)
+	else
+		return nil
 	end
 end
