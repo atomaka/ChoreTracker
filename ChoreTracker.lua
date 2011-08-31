@@ -44,13 +44,19 @@ local function anchor_OnEnter(self)
 		local class = self.db.global.classes[character]
 		self.tooltip:SetCell(characterLine, 1, character, classColors[class], 'LEFT')
 		
-		local valorPointColor
-		if self.db.global.valorPoints[character].points == 980 then
+		local valorPointColor,valorPoints
+		if self.db.global.valorPoints[character] == nil then
+			valorPoints = 0
+		else
+			valorPoints = self.db.global.valorPoints[character].points
+		end
+		
+		if valorPoints == 980 then
 			valorPointColor = flagColors['red']
 		else
 			valorPointColor = flagColors['green']
 		end
-		self.tooltip:SetCell(characterLine, 2, self.db.global.valorPoints[character].points, valorPointColor, 'LEFT')
+		self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'LEFT')
 		
 		local nextColumn = 3
 		for instance,abbreviation in pairs(trackedInstances) do
@@ -121,6 +127,9 @@ function core:OnEnable()
 	if self.db.global.lockouts[name] == nil then
 		self.db.global.lockouts[name] = {}
 	end
+	if self.db.global.valorPoints[name] == nil then
+		self.db.global.valorPoints[name] = {}
+	end
 	
 	self:RegisterChatCommand('ct', 'ViewChores');
 	self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
@@ -144,11 +153,13 @@ function core:UpdateChores()
 		--set class if not already set
 		local class = UnitClass('player')
 		self.db.global.classes[name] = class:lower()
+		local vpReset = core:GetNextVPReset()
 		
 		--store Valor Points
+		print(name,earnedThisWeek,vpReset)
 		self.db.global.valorPoints[name] = {}
 		self.db.global.valorPoints[name].points = earnedThisWeek
-		self.db.global.valorPoints[name].resetTime = 0 -- core:GetNextVPReset()
+		self.db.global.valorPoints[name].resetTime = vpReset
 
 		--store Saved Instances
 		local savedInstances = GetNumSavedInstances()
@@ -190,7 +201,7 @@ function core:GetNextVPReset()
 
 	--figure out what time the server resets daily information
 	local questReset = GetQuestResetTime()
-	local resetTime = date('*t', questReset)
+	local resetTime = date('*t', time() + questReset)
 	
 	--figure out reset day using next BH lockout
 	local _, month, day, year = CalendarGetDate()
@@ -227,5 +238,6 @@ function core:GetNextVPReset()
 	resetDate.hour = resetTime.hour
 	resetDate.min = resetTime.min
 	resetDate.sec = resetTime.sec
+	print(resetDate.hour,resetDate.min,resetDate.sec)
 	return time(resetDate)
 end
