@@ -133,6 +133,8 @@ function core:OnEnable()
 	
 	self:RegisterChatCommand('ct', 'ViewChores');
 	self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
+	self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
+	LoadAddOn("Blizzard_Calendar")
 end
 
 function core:ViewChores()
@@ -247,9 +249,7 @@ function core:GetNextVPReset()
 		resetDate.hour = resetTime.hour
 		resetDate.min = resetTime.min
 		resetDate.sec = resetTime.sec
-	
+
 		return time(resetDate)
-	else
-		print('resetDate not set')
 	end
 end
