@@ -5,6 +5,9 @@ local LibQTip
 local trackedInstances = {
 	['Baradin Hold'] = 'BH',
 	['Firelands'] = 'FL',
+	['The Bastion of Twilight'] = 'BoT',
+	['Blackwing Descent'] = 'BWD',
+	['Throne of the Four Winds'] = '4W',
 }
 
 local defaults = {
@@ -216,8 +219,6 @@ function core:GetNextVPReset()
 	--figure out reset day using next BH lockout
 	local _, month, day, year = CalendarGetDate()
 	
-	--calendar not yet loaded? Cannot find events when first fires of this;
-	--"arbitrarily" fires at unknown time.
 	local monthOffset = 0
 	local resetDate = nil
 	while resetDate == nil do
