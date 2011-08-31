@@ -156,7 +156,6 @@ function core:UpdateChores()
 		local vpReset = core:GetNextVPReset()
 		
 		--store Valor Points
-		print(name,earnedThisWeek,vpReset)
 		self.db.global.valorPoints[name] = {}
 		self.db.global.valorPoints[name].points = earnedThisWeek
 		self.db.global.valorPoints[name].resetTime = vpReset
@@ -191,7 +190,13 @@ function core:ResetInstances()
 end
 
 function core:ResetValorPoints()
-
+	for k,v in pairs(self.db.global.valorPoints) do
+		if v.resetTime ~= nil then 
+			if v.resetTime < time() then
+				self.db.global.valorPoints[k] = nil
+			end
+		end
+	end
 end
 
 function core:GetNextVPReset()
@@ -238,6 +243,6 @@ function core:GetNextVPReset()
 	resetDate.hour = resetTime.hour
 	resetDate.min = resetTime.min
 	resetDate.sec = resetTime.sec
-	print(resetDate.hour,resetDate.min,resetDate.sec)
+
 	return time(resetDate)
 end
