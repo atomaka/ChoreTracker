@@ -202,7 +202,8 @@ end
 function core:GetNextVPReset()
 	--prepare calendar
 	local currentCalendarSetting = GetCVar('calendarShowResets') -- get current value and store
-	SetCVar('calendarShowResets',1) -- set it to what we want
+	SetCVar('calendarShowResets', 1) -- set it to what we want
+	OpenCalendar()
 
 	--figure out what time the server resets daily information
 	local questReset = GetQuestResetTime()
@@ -211,6 +212,8 @@ function core:GetNextVPReset()
 	--figure out reset day using next BH lockout
 	local _, month, day, year = CalendarGetDate()
 	
+	--calendar not yet loaded? Cannot find events when first fires of this;
+	--"arbitrarily" fires at unknown time.
 	local monthOffset = 0
 	local resetDate = nil
 	while resetDate == nil do
@@ -240,9 +243,13 @@ function core:GetNextVPReset()
 	SetCVar('calendarShowResets',currentCalendarSetting)
 	
 	--and combine for the reset timestamp
-	resetDate.hour = resetTime.hour
-	resetDate.min = resetTime.min
-	resetDate.sec = resetTime.sec
-
-	return time(resetDate)
+	if(resetDate ~= nil) then
+		resetDate.hour = resetTime.hour
+		resetDate.min = resetTime.min
+		resetDate.sec = resetTime.sec
+	
+		return time(resetDate)
+	else
+		print('resetDate not set')
+	end
 end
