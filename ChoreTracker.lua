@@ -1,4 +1,4 @@
-ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker','AceConsole-3.0','AceEvent-3.0')
+ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
 local LibQTip
 
@@ -19,22 +19,22 @@ local classColors = {}
 local flagColors = {}
 
 local function anchor_OnEnter(self)
-	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB',defaults,'Default')
+	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	local columnCount = 2
 	for instance,abbreviation in pairs(trackedInstances) do
 		columnCount = columnCount + 1
 	end
 	
-	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip',columnCount,'LEFT','CENTER','RIGHT')
+	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT')
 
 	--create the tooltip header
 	self.tooltip:AddHeader('')
 	local valorPointColumn = self.tooltip:AddColumn('LEFT')
-	self.tooltip:SetCell(1,1,'')
-	self.tooltip:SetCell(1,2,'VP')
+	self.tooltip:SetCell(1, 1, '')
+	self.tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
 	for instance,abbreviation in pairs(trackedInstances) do
-		self.tooltip:SetCell(1,nextColumn,abbreviation,nil,'LEFT')
+		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'LEFT')
 		nextColumn = nextColumn + 1
 	end
 	--go through all stored raiders
@@ -42,22 +42,22 @@ local function anchor_OnEnter(self)
 		local characterLine = self.tooltip:AddLine('')
 
 		local class = self.db.global.classes[character]
-		self.tooltip:SetCell(characterLine,1,character,classColors[class],'LEFT')
+		self.tooltip:SetCell(characterLine, 1, character, classColors[class], 'LEFT')
 		
 		local valorPointColor
-		if self.db.global.valorPoints[character] == 980 then
+		if self.db.global.valorPoints[character].points == 980 then
 			valorPointColor = flagColors['red']
 		else
 			valorPointColor = flagColors['green']
 		end
-		self.tooltip:SetCell(characterLine,2,self.db.global.valorPoints[character],valorPointColor,'LEFT')
+		self.tooltip:SetCell(characterLine, 2, self.db.global.valorPoints[character].points, valorPointColor, 'LEFT')
 		
 		local nextColumn = 3
 		for instance,abbreviation in pairs(trackedInstances) do
 			if self.db.global.lockouts[character][instance] ~= nil then
-				self.tooltip:SetCell(characterLine,nextColumn,self.db.global.lockouts[character][instance].defeatedBosses,flagColors['red'],'LEFT')
+				self.tooltip:SetCell(characterLine, nextColumn, self.db.global.lockouts[character][instance].defeatedBosses, flagColors['red'], 'LEFT')
 			else
-				self.tooltip:SetCell(characterLine,nextColumn,'0',flagColors['green'],'LEFT')
+				self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'LEFT')
 			end
 			nextColumn = nextColumn + 1
 		end
@@ -73,13 +73,13 @@ local function anchor_OnLeave(self)
 end
 
 function core:OnInitialize()
-	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB',defaults,'Default')
+	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
-	local ChoresDisplay = CreateFrame('Frame','ChoreTrackerFrame',UIParent)
-	ChoresDisplay:SetPoint('CENTER')
-	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil,'BACKGROUND')
+	local ChoresDisplay = CreateFrame('Frame', 'ChoreTrackerFrame', UIParent)
+	ChoresDisplay:SetPoint('TOPLEFT')
+	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil, 'BACKGROUND')
 	ChoresDisplay.background:SetAllPoints(true)
-	ChoresDisplay.background:SetTexture(1,0.5,0,0.5)
+	ChoresDisplay.background:SetTexture(1, 0.5, 0, 0.5)
 	ChoresDisplay:SetHeight(50)
 	ChoresDisplay:SetWidth(50)
 	ChoresDisplay:Show()
@@ -88,11 +88,11 @@ function core:OnInitialize()
 	ChoresDisplay:SetMovable(true)
 	ChoresDisplay:RegisterForDrag('LeftButton')
 	
-	ChoresDisplay:SetScript('OnDragStart',ChoresDisplay.StartMoving)
-	ChoresDisplay:SetScript('OnDragStop',ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnHide',ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnEnter',anchor_OnEnter)
-	ChoresDisplay:SetScript('OnLeave',anchor_OnLeave)
+	ChoresDisplay:SetScript('OnDragStart', ChoresDisplay.StartMoving)
+	ChoresDisplay:SetScript('OnDragStop', ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnHide', ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
+	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
 	
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
@@ -102,16 +102,16 @@ function core:OnInitialize()
 		
 		classColors[class] = CreateFont('ClassFont' .. class)
 		classColors[class]:CopyFontObject(GameTooltipText)
-		classColors[class]:SetTextColor(color.r,color.g,color.b)
+		classColors[class]:SetTextColor(color.r, color.g, color.b)
 	end
 	
 	flagColors['green'] = CreateFont('FlagFontGreen')
 	flagColors['green']:CopyFontObject(GameTooltipText)
-	flagColors['green']:SetTextColor(0,255,0)
+	flagColors['green']:SetTextColor(0, 255, 0)
 	
 	flagColors['red'] = CreateFont('FlagFontRed')
 	flagColors['red']:CopyFontObject(GameTooltipText)
-	flagColors['red']:SetTextColor(255,0,0)
+	flagColors['red']:SetTextColor(255, 0, 0)
 end
 
 function core:OnEnable()
@@ -122,8 +122,8 @@ function core:OnEnable()
 		self.db.global.lockouts[name] = {}
 	end
 	
-	self:RegisterChatCommand('ct','ViewChores');
-	self:RegisterEvent('UPDATE_INSTANCE_INFO','UpdateChores')
+	self:RegisterChatCommand('ct', 'ViewChores');
+	self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
 end
 
 function core:ViewChores()
@@ -146,12 +146,14 @@ function core:UpdateChores()
 		self.db.global.classes[name] = class:lower()
 		
 		--store Valor Points
-		self.db.global.valorPoints[name] = earnedThisWeek
+		self.db.global.valorPoints[name] = {}
+		self.db.global.valorPoints[name].points = earnedThisWeek
+		self.db.global.valorPoints[name].resetTime = 0 -- core:GetNextVPReset()
 
 		--store Saved Instances
 		local savedInstances = GetNumSavedInstances()
 		for i = 1, savedInstances do
-			local instanceName,_,instanceReset,_,_,_,_,_,_,_,_,defeatedBosses = GetSavedInstanceInfo(i)
+			local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
 			
 			if trackedInstances[instanceName] ~= nil then
 				if instanceReset > 0 then
@@ -179,4 +181,51 @@ end
 
 function core:ResetValorPoints()
 
+end
+
+function core:GetNextVPReset()
+	--prepare calendar
+	local currentCalendarSetting = GetCVar('calendarShowResets') -- get current value and store
+	SetCVar('calendarShowResets',1) -- set it to what we want
+
+	--figure out what time the server resets daily information
+	local questReset = GetQuestResetTime()
+	local resetTime = date('*t', questReset)
+	
+	--figure out reset day using next BH lockout
+	local _, month, day, year = CalendarGetDate()
+	
+	local monthOffset = 0
+	local resetDate = nil
+	while resetDate == nil do
+		local todaysEvents = CalendarGetNumDayEvents(monthOffset, day)
+
+		for i = 1,todaysEvents do
+			if todaysEvents == 0 then 
+				break 
+			end
+
+			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
+
+			if(title == 'Baradin Hold') then
+				resetDate = { year = year, month = month + monthOffset, day = day }
+			end
+		end
+		
+		day = day + 1
+		if day > 31 then
+			if monthOffset == 1 then break end
+			day = 1
+			monthOffset = 1
+		end
+	end
+	
+	--return calendar
+	SetCVar('calendarShowResets',currentCalendarSetting)
+	
+	--and combine for the reset timestamp
+	resetDate.hour = resetTime.hour
+	resetDate.min = resetTime.min
+	resetDate.sec = resetTime.sec
+	return time(resetDate)
 end
