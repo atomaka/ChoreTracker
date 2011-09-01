@@ -219,7 +219,7 @@ local function anchor_OnEnter(self)
 	self.tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
 	for instance,abbreviation in pairs(trackedInstances) do
-		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'LEFT')
+		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'CENTER')
 		nextColumn = nextColumn + 1
 	end
 	
@@ -236,15 +236,15 @@ local function anchor_OnEnter(self)
 			else
 				valorPointColor = flagColors['green']
 			end
-			self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'LEFT')
+			self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'RIGHT')
 			
 			local nextColumn = 3
 			for instance,abbreviation in pairs(trackedInstances) do
 				if self.db.global[realm][name].lockouts[instance] ~= nil then
 					local defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
-					self.tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'LEFT')
+					self.tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
 				else
-					self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'LEFT')
+					self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
 				end
 				nextColumn = nextColumn + 1
 			end
