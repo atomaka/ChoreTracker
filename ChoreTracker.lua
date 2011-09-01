@@ -189,7 +189,7 @@ function core:GetNextVPReset()
 	end
 	
 	--return calendar
-	SetCVar('calendarShowResets',currentCalendarSetting)
+	SetCVar('calendarShowResets', currentCalendarSetting)
 	
 	--and combine for the reset timestamp
 	if(resetDate ~= nil) then
@@ -265,9 +265,9 @@ function core:CreateChoreFrame()
 	ChoresDisplay:SetPoint('TOPLEFT')
 	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil, 'BACKGROUND')
 	ChoresDisplay.background:SetAllPoints(true)
-	ChoresDisplay.background:SetTexture(1, 0.5, 0, 0.5)
-	ChoresDisplay:SetHeight(50)
-	ChoresDisplay:SetWidth(50)
+	ChoresDisplay.background:SetTexture('Interface\\AddOns\\ChoreTracker\\icon')
+	ChoresDisplay:SetHeight(32)
+	ChoresDisplay:SetWidth(32)
 	ChoresDisplay:Show()
 	
 	ChoresDisplay:EnableMouse(true)
