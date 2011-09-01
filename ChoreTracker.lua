@@ -11,97 +11,54 @@ local trackedInstances = {
 }
 
 local defaults = {
-	global = {
-		classes = {},
-		valorPoints = {},
-		lockouts = {},
-	}
+	global = {}
 }
 
 local classColors = {}
 local flagColors = {}
 
-local function anchor_OnEnter(self)
-	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
-	local columnCount = 2
-	for instance,abbreviation in pairs(trackedInstances) do
-		columnCount = columnCount + 1
-	end
-	
-	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT')
-
-	--create the tooltip header
-	self.tooltip:AddHeader('')
-	local valorPointColumn = self.tooltip:AddColumn('LEFT')
-	self.tooltip:SetCell(1, 1, '')
-	self.tooltip:SetCell(1, 2, 'VP')
-	local nextColumn = 3
-	for instance,abbreviation in pairs(trackedInstances) do
-		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'LEFT')
-		nextColumn = nextColumn + 1
-	end
-	--go through all stored raiders
-	for character,instancesTable in pairs(self.db.global.lockouts) do
-		local characterLine = self.tooltip:AddLine('')
-
-		local class = self.db.global.classes[character]
-		self.tooltip:SetCell(characterLine, 1, character, classColors[class], 'LEFT')
-		
-		local valorPointColor,valorPoints
-		if self.db.global.valorPoints[character] == nil then
-			valorPoints = 0
-		else
-			valorPoints = self.db.global.valorPoints[character].points
-		end
-		
-		if valorPoints == 980 then
-			valorPointColor = flagColors['red']
-		else
-			valorPointColor = flagColors['green']
-		end
-		self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'LEFT')
-		
-		local nextColumn = 3
-		for instance,abbreviation in pairs(trackedInstances) do
-			if self.db.global.lockouts[character][instance] ~= nil then
-				self.tooltip:SetCell(characterLine, nextColumn, self.db.global.lockouts[character][instance].defeatedBosses, flagColors['red'], 'LEFT')
-			else
-				self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'LEFT')
-			end
-			nextColumn = nextColumn + 1
-		end
-	end
-	
-	self.tooltip:SmartAnchorTo(self)
-	self.tooltip:Show()
-end
-
-local function anchor_OnLeave(self)
-	LibQTip:Release(self.tooltip)
-	self.tooltip = nil
-end
-
 function core:OnInitialize()
+	--prepare the database if necessary
 	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
-	local ChoresDisplay = CreateFrame('Frame', 'ChoreTrackerFrame', UIParent)
-	ChoresDisplay:SetPoint('TOPLEFT')
-	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil, 'BACKGROUND')
-	ChoresDisplay.background:SetAllPoints(true)
-	ChoresDisplay.background:SetTexture(1, 0.5, 0, 0.5)
-	ChoresDisplay:SetHeight(50)
-	ChoresDisplay:SetWidth(50)
-	ChoresDisplay:Show()
+	local level = UnitLevel('player')
+	local realm = GetRealmName()
+	local name = UnitName('player')
+	if self.db.global[realm] == nil then
+		self.db.global[realm] = {}
+	end
 	
-	ChoresDisplay:EnableMouse(true)
-	ChoresDisplay:SetMovable(true)
-	ChoresDisplay:RegisterForDrag('LeftButton')
+	if self.db.global[realm][name] == nil and level == 85 then
+		self.db.global[realm][name] = {}
+		
+		local class = UnitClass('player')
+		class = class:lower()
+		if class == 'deathknight' then
+			class = 'death knight'
+		end
+		
+		self.db.global[realm][name].class = class
+		self.db.global[realm][name].valorPoints = {
+			valorPoints = 0,
+			resetTime = 0,
+		}
+		self.db.global[realm][name].lockouts = {}
+	end
+end
+
+function core:OnEnable()
+	LibQTip = LibStub('LibQTip-1.0')
+
+	self:RegisterChatCommand('ct', 'ViewChores');
 	
-	ChoresDisplay:SetScript('OnDragStart', ChoresDisplay.StartMoving)
-	ChoresDisplay:SetScript('OnDragStop', ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnHide', ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
-	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
+	local level = UnitLevel('player')
+	if level == 85 then
+		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
+		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
+	end
+	LoadAddOn("Blizzard_Calendar")
+	
+	core:CreateChoreFrame()
 	
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
@@ -121,86 +78,73 @@ function core:OnInitialize()
 	flagColors['red'] = CreateFont('FlagFontRed')
 	flagColors['red']:CopyFontObject(GameTooltipText)
 	flagColors['red']:SetTextColor(255, 0, 0)
-end
-
-function core:OnEnable()
-	LibQTip = LibStub('LibQTip-1.0')
-	local name = UnitName('player')
-
-	if self.db.global.lockouts[name] == nil then
-		self.db.global.lockouts[name] = {}
-	end
-	if self.db.global.valorPoints[name] == nil then
-		self.db.global.valorPoints[name] = {}
-	end
 	
-	self:RegisterChatCommand('ct', 'ViewChores');
-	self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
-	self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
-	LoadAddOn("Blizzard_Calendar")
+	--reset data if necessary
+	core:ResetInstances()
+	core:ResetValorPoints()
 end
+
+
 
 function core:ViewChores()
 
 end
 
 function core:UpdateChores()
-	local level = UnitLevel('player')
-	
 	--reset data if necessary
 	core:ResetInstances()
 	core:ResetValorPoints()
-	
-	if(level == 85) then
-		local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
-		local name = UnitName('player')
-		
-		--set class if not already set
-		local class = UnitClass('player')
-		self.db.global.classes[name] = class:lower()
-		local vpReset = core:GetNextVPReset()
-		
-		--store Valor Points
-		if vpReset ~= nil then
-			self.db.global.valorPoints[name] = {}
-			self.db.global.valorPoints[name].points = earnedThisWeek
-			self.db.global.valorPoints[name].resetTime = vpReset
-		end
 
-		--store Saved Instances
-		local savedInstances = GetNumSavedInstances()
-		for i = 1, savedInstances do
-			local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
-			
-			if trackedInstances[instanceName] ~= nil then
-				if instanceReset > 0 then
-					self.db.global.lockouts[name][instanceName] = {}
-					self.db.global.lockouts[name][instanceName].defeatedBosses = defeatedBosses
-					self.db.global.lockouts[name][instanceName].resetTime = time() + instanceReset
-				else
-					self.db.global.lockouts[name][instanceName] = nil
-				end
+	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
+	local realm = GetRealmName()
+	local name = UnitName('player')
+	
+	local vpReset = core:GetNextVPReset()
+		
+	--store Valor Points
+	if vpReset ~= nil then
+		self.db.global[realm][name].valorPoints = {}
+		self.db.global[realm][name].valorPoints.points = earnedThisWeek
+		self.db.global[realm][name].valorPoints.resetTime = vpReset
+	end
+
+	--store Saved Instances
+	local savedInstances = GetNumSavedInstances()
+	for i = 1, savedInstances do
+		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
+		
+		if trackedInstances[instanceName] ~= nil then
+			if instanceReset > 0 then
+				self.db.global[realm][name].lockouts[instanceName] = {}
+				self.db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
+				self.db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
+			else
+				self.db.global[realm][name].lockouts[instanceName] = nil
 			end
 		end
-		
 	end
 end
 
 function core:ResetInstances()
-	for k,v in pairs(self.db.global.lockouts) do
-		for x,y in pairs(self.db.global.lockouts[k]) do
-			if y.resetTime < time() then
-				self.db.global.lockouts[k][x] = nil
+	for realm,realmTable in pairs(self.db.global) do
+		for name in pairs(realmTable) do
+			for instance,instanceTable in pairs(self.db.global[realm][name].lockouts) do
+				if instanceTable.resetTime < time() then
+					self.db.global[realm][name].lockouts[instance] = nil
+				end
 			end
 		end
 	end
 end
 
 function core:ResetValorPoints()
-	for k,v in pairs(self.db.global.valorPoints) do
-		if v.resetTime ~= nil then 
-			if v.resetTime < time() then
-				self.db.global.valorPoints[k] = nil
+	for realm,realmTable in pairs(self.db.global) do
+		for name in pairs(realmTable) do
+			if self.db.global[realm][name].valorPoints.resetTime < time() then
+				self.db.global[realm][name].valorPoints = {
+					valorPoints = 0,
+					resetTime = 0,					
+				}
 			end
 		end
 	end
@@ -257,4 +201,82 @@ function core:GetNextVPReset()
 	else
 		return nil
 	end
+end
+
+local function anchor_OnEnter(self)
+	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
+	local columnCount = 2
+	for instance,abbreviation in pairs(trackedInstances) do
+		columnCount = columnCount + 1
+	end
+	
+	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT')
+
+	--create the tooltip header
+	self.tooltip:AddHeader('')
+	local valorPointColumn = self.tooltip:AddColumn('LEFT')
+	self.tooltip:SetCell(1, 1, '')
+	self.tooltip:SetCell(1, 2, 'VP')
+	local nextColumn = 3
+	for instance,abbreviation in pairs(trackedInstances) do
+		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'LEFT')
+		nextColumn = nextColumn + 1
+	end
+	
+	for realm in pairs(self.db.global) do
+		for name in pairs(self.db.global[realm]) do
+			local characterLine = self.tooltip:AddLine('')
+			local class = self.db.global[realm][name].class
+			self.tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
+			
+			local valorPoints, valorPointColor
+			valorPoints = self.db.global[realm][name].valorPoints.points
+			if valorPoints == 980 then
+				valorPointColor = flagColors['red']
+			else
+				valorPointColor = flagColors['green']
+			end
+			self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'LEFT')
+			
+			local nextColumn = 3
+			for instance,abbreviation in pairs(trackedInstances) do
+				if self.db.global[realm][name].lockouts[instance] ~= nil then
+					local defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
+					self.tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'LEFT')
+				else
+					self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'LEFT')
+				end
+				nextColumn = nextColumn + 1
+			end
+		end
+	end
+	
+	self.tooltip:SmartAnchorTo(self)
+	self.tooltip:Show()
+end
+
+local function anchor_OnLeave(self)
+	LibQTip:Release(self.tooltip)
+	self.tooltip = nil
+end
+
+function core:CreateChoreFrame()
+	local ChoresDisplay = CreateFrame('Frame', 'ChoreTrackerFrame', UIParent)
+	ChoresDisplay:SetPoint('TOPLEFT')
+	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil, 'BACKGROUND')
+	ChoresDisplay.background:SetAllPoints(true)
+	ChoresDisplay.background:SetTexture(1, 0.5, 0, 0.5)
+	ChoresDisplay:SetHeight(50)
+	ChoresDisplay:SetWidth(50)
+	ChoresDisplay:Show()
+	
+	ChoresDisplay:EnableMouse(true)
+	ChoresDisplay:SetMovable(true)
+	ChoresDisplay:RegisterForDrag('LeftButton')
+	
+	ChoresDisplay:SetScript('OnDragStart', ChoresDisplay.StartMoving)
+	ChoresDisplay:SetScript('OnDragStop', ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnHide', ChoresDisplay.StopMovingOrSizing)
+	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
+	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
 end
