@@ -95,12 +95,12 @@ function core:UpdateChores()
 	core:ResetInstances()
 	core:ResetValorPoints()
 
-	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 	local realm = GetRealmName()
 	local name = UnitName('player')
 	
 	local vpReset = core:GetNextVPReset()
-		
+	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
+
 	--store Valor Points
 	if vpReset ~= nil then
 		self.db.global[realm][name].valorPoints = {}
@@ -231,6 +231,9 @@ local function anchor_OnEnter(self)
 			
 			local valorPoints, valorPointColor
 			valorPoints = self.db.global[realm][name].valorPoints.points
+			if valorPoints == nil then
+				valorPoints = 0
+			end
 			if valorPoints == 980 then
 				valorPointColor = flagColors['red']
 			else
