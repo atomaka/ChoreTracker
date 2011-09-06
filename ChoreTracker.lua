@@ -55,8 +55,13 @@ function core:OnEnable()
 	if level == 85 then
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
+		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
+		self:RegisterEvent('PLAYER_LEAVING_WORLD', 'UpdateChores')
+		
 	end
 	LoadAddOn("Blizzard_Calendar")
+	
+	
 	
 	core:CreateChoreFrame()
 	
@@ -83,8 +88,6 @@ function core:OnEnable()
 	core:ResetInstances()
 	core:ResetValorPoints()
 end
-
-
 
 function core:ViewChores()
 
