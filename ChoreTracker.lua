@@ -1,6 +1,7 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
 local LibQTip
+local db
 
 local trackedInstances = {
 	['Baradin Hold'] = 'BH',
@@ -11,7 +12,27 @@ local trackedInstances = {
 }
 
 local defaults = {
-	global = {}
+	global = {},
+	profile = {
+		instances = {},
+	},
+}
+
+local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
+local options_getter = function(info) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end return t[info[#info]] end
+local options = {
+	name = 'ChoreTracker',
+	type = 'group',
+	set = options_setter,
+	get = options_getter,
+	args = {
+		enabled = {
+			name = 'Toggle Instances',
+			type = 'group',
+			order = 10,
+			args = {},
+		}
+	}
 }
 
 local classColors = {}
@@ -44,6 +65,13 @@ function core:OnInitialize()
 		}
 		self.db.global[realm][name].lockouts = {}
 	end
+	
+	-- Generate our options and add them to Blizzard Interface
+	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
+	local ACD = LibStub('AceConfigDialog-3.0')
+	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+	
+	LoadAddOn('LibQTip-1.0')
 end
 
 function core:OnEnable()
