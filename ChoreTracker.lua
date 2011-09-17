@@ -84,7 +84,7 @@ function core:OnEnable()
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
-		self:RegisterEvent('PLAYER_LEAVING_WORLD', 'UpdateChores')
+		--self:RegisterEvent('PLAYER_LEAVING_WORLD', 'UpdateChores')
 		
 	end
 	LoadAddOn("Blizzard_Calendar")
