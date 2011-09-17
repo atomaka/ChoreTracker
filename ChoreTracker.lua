@@ -13,14 +13,14 @@ local trackedInstances = {
 
 local defaults = {
 	global = {},
-	profile = {
+	--[[profile = {
 		instances = {},
-	},
+	},]]--
 }
 
-local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
-local options_getter = function(info) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end return t[info[#info]] end
-local options = {
+--local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
+--local options_getter = function(info) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end return t[info[#info]] end
+--[[local options = {
 	name = 'ChoreTracker',
 	type = 'group',
 	set = options_setter,
@@ -33,7 +33,7 @@ local options = {
 			args = {},
 		}
 	}
-}
+}]]--
 
 local classColors = {}
 local flagColors = {}
@@ -67,9 +67,9 @@ function core:OnInitialize()
 	end
 	
 	-- Generate our options and add them to Blizzard Interface
-	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
+	--[[LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
 	local ACD = LibStub('AceConfigDialog-3.0')
-	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')]]--
 	
 	LoadAddOn('LibQTip-1.0')
 end
@@ -185,7 +185,6 @@ function core:GetNextVPReset()
 	--prepare calendar
 	local currentCalendarSetting = GetCVar('calendarShowResets') -- get current value and store
 	SetCVar('calendarShowResets', 1) -- set it to what we want
-	OpenCalendar()
 
 	--figure out what time the server resets daily information
 	local questReset = GetQuestResetTime()
