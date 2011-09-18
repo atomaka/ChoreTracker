@@ -74,8 +74,6 @@ end
 
 function core:OnEnable()
 	LibQTip = LibStub('LibQTip-1.0')
-
-	self:RegisterChatCommand('ct', 'ViewChores');
 	
 	local level = UnitLevel('player')
 	if level == 85 then
@@ -113,10 +111,6 @@ function core:OnEnable()
 	--reset data if necessary
 	core:ResetInstances()
 	core:ResetValorPoints()
-end
-
-function core:ViewChores()
-
 end
 
 function core:UpdateChores()
