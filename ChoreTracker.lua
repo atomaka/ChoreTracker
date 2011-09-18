@@ -1,18 +1,14 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
-local LibQTip
+local LQT
 local db
 local LDB
 local LDBIcon
 local tooltip
+local LBZ
+local zones
 
-local trackedInstances = {
-	['Baradin Hold'] = 'BH',
-	['Firelands'] = 'FL',
-	['The Bastion of Twilight'] = 'BoT',
-	['Blackwing Descent'] = 'BWD',
-	['Throne of the Four Winds'] = '4W',
-}
+local trackedInstances
 
 local defaults = {
 	global = {},
@@ -65,7 +61,9 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
-	LibQTip = LibStub('LibQTip-1.0')
+	LQT = LibStub('LibQTip-1.0')
+	LBZ = LibStub("LibBabble-Zone-3.0")
+	
 	LoadAddOn('Blizzard_Calendar')
 
 	for class,color in pairs(RAID_CLASS_COLORS) do
@@ -102,7 +100,7 @@ function core:OnEnable()
 			for instance,abbreviation in pairs(trackedInstances) do
 				columnCount = columnCount + 1
 			end
-			tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
+			tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
 			
 			core:DrawTooltip()
 			
@@ -110,7 +108,7 @@ function core:OnEnable()
 			tooltip:Show() 
 		end,
 		OnLeave = function(self) 
-			LibQTip:Release(tooltip) 
+			LQT:Release(tooltip) 
 			tooltip = nil 
 		end,		
 	})
@@ -124,6 +122,17 @@ function core:OnEnable()
 	else
 		self.LDBIcon:Show('ChoreTracker')
 	end
+	
+	-- Get instances
+	zones = LBZ:GetLookupTable()
+	
+	trackedInstances = {
+		[zones['Baradin Hold']] = 'BH',
+		[zones['Firelands']] = 'FL',
+		[zones['The Bastion of Twilight']] = 'BoT',
+		[zones['Blackwing Descent']] = 'BWD',
+		[zones['Throne of the Four Winds']] = '4W',
+	}
 end
 
 function core:UpdateChores()
@@ -210,7 +219,7 @@ function core:GetNextVPReset()
 
 			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
 
-			if title == 'Baradin Hold' then
+			if title == zones['Baradin Hold'] then
 				resetDate = { year = year, month = month + monthOffset, day = day }
 			end
 		end

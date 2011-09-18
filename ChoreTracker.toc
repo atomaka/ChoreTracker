@@ -5,7 +5,7 @@
 ## Notes: Reminding you to do your chores just like your mother.
 ## DefaultState: enabled 
 ## SavedVariables: ChoreTrackerDB
-## OptionalDeps: LibQTip-1.0, LibDBIcon-1.0
+## OptionalDeps: LibQTip-1.0, LibDBIcon-1.0, LibBabble-Zone-3.0
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -13,8 +13,9 @@ Libs\AceAddon-3.0\AceAddon-3.0.xml
 Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceDB-3.0\AceDB-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
-Libs\LibQTip-1.0\lib.xml
+Libs\LibBabble-Zone-3.0\lib.xml
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\LibQTip-1.0\lib.xml
 
 ChoreTracker.lua
