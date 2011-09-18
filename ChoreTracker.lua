@@ -66,7 +66,7 @@ end
 
 function core:OnEnable()
 	LibQTip = LibStub('LibQTip-1.0')
-	LoadAddOn("Blizzard_Calendar")
+	LoadAddOn('Blizzard_Calendar')
 
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
@@ -92,11 +92,11 @@ function core:OnEnable()
 	core:ResetValorPoints()
 	
 	-- Setup LDB
-	self.LDB = LibStub("LibDataBroker-1.1"):NewDataObject("ChoreTracker", {
-		type = "data source",
-		text = "ChoreTracker",
-		icon = "Interface\\AddOns\\ChoreTracker\\icon",
-		OnClick = function() print("ChoreTracker test") end,
+	self.LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
+		type = 'data source',
+		text = 'ChoreTracker',
+		icon = 'Interface\\AddOns\\ChoreTracker\\icon',
+		OnClick = function() print('ChoreTracker test') end,
 		OnEnter = function(self) 
 			local columnCount = 2
 			for instance,abbreviation in pairs(trackedInstances) do
@@ -116,13 +116,13 @@ function core:OnEnable()
 	})
 	
 	-- Deal with minimap
-	self.LDBIcon = LibStub("LibDBIcon-1.0")
-	self.LDBIcon:Register("ChoreTracker", self.LDB, self.db.profile.minimap)
+	self.LDBIcon = LibStub('LibDBIcon-1.0')
+	self.LDBIcon:Register('ChoreTracker', self.LDB, self.db.profile.minimap)
 	
 	if self.db.profile.minimap.hide then
-		self.LDBIcon:Hide("ChoreTracker")
+		self.LDBIcon:Hide('ChoreTracker')
 	else
-		self.LDBIcon:Show("ChoreTracker")
+		self.LDBIcon:Show('ChoreTracker')
 	end
 end
 
