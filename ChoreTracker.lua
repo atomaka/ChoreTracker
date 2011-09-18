@@ -70,8 +70,6 @@ function core:OnInitialize()
 	--[[LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
 	local ACD = LibStub('AceConfigDialog-3.0')
 	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')]]--
-	
-	LoadAddOn('LibQTip-1.0')
 end
 
 function core:OnEnable()
