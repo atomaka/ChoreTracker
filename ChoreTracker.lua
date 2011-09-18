@@ -1,14 +1,7 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
-local LQT
-local db
-local LDB
-local LDBIcon
-local tooltip
-local LBZ
-local zones
-local trackedInstances
-local vpResetTime
+local LQT, LDB, LDBIcon, LBZ
+local db, tooltip, zones, trackedInstances, vpResetTime
 
 local defaults = {
 	global = {},
@@ -28,8 +21,8 @@ local options = {
 			name = 'Hide Minimap Icon',
 			desc = 'Removes the icon from your minimap.',
 			type = 'toggle',
-			get = function(info) return core.db.profile.minimap.hide end,
-			set = function(info, value) core.db.profile.minimap.hide = value core.LDBIcon[value and 'Hide' or 'Show'](core.LDBIcon, 'ChoreTracker') end,
+			get = function(info) return db.profile.minimap.hide end,
+			set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
 		}
 	}
 }
@@ -39,17 +32,17 @@ local flagColors = {}
 
 function core:OnInitialize()
 	-- Prepare the database if necessary
-	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
+	db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
 	local level = UnitLevel('player')
 	local realm = GetRealmName()
 	local name = UnitName('player')
-	if self.db.global[realm] == nil then
-		self.db.global[realm] = {}
+	if db.global[realm] == nil then
+		db.global[realm] = {}
 	end
 	
-	if self.db.global[realm][name] == nil and level == 85 then
-		self.db.global[realm][name] = {}
+	if db.global[realm][name] == nil and level == 85 then
+		db.global[realm][name] = {}
 		
 		local class = UnitClass('player')
 		class = class:lower()
@@ -57,12 +50,12 @@ function core:OnInitialize()
 			class = 'death knight'
 		end
 		
-		self.db.global[realm][name].class = class
-		self.db.global[realm][name].valorPoints = {
+		db.global[realm][name].class = class
+		db.global[realm][name].valorPoints = {
 			valorPoints = 0,
 			resetTime = 0,
 		}
-		self.db.global[realm][name].lockouts = {}
+		db.global[realm][name].lockouts = {}
 	end
 	
 	-- Register events (here for now; track data regardless of whether it is displayed?)
@@ -72,12 +65,17 @@ function core:OnInitialize()
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
 	end
+	
+	-- Reset data if necessary
+	core:ResetInstances()
+	core:ResetValorPoints()
 end
 
 function core:OnEnable()
 	LQT = LibStub('LibQTip-1.0')
 	LBZ = LibStub('LibBabble-Zone-3.0')
 
+	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
 		if class == 'deathknight' then
@@ -97,12 +95,8 @@ function core:OnEnable()
 	flagColors['red']:CopyFontObject(GameTooltipText)
 	flagColors['red']:SetTextColor(255, 0, 0)
 	
-	--reset data if necessary
-	core:ResetInstances()
-	core:ResetValorPoints()
-	
 	-- Setup LDB
-	self.LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
+	LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
 		type = 'data source',
 		text = 'ChoreTracker',
 		icon = 'Interface\\AddOns\\ChoreTracker\\icon',
@@ -126,13 +120,13 @@ function core:OnEnable()
 	})
 	
 	-- Deal with minimap
-	self.LDBIcon = LibStub('LibDBIcon-1.0')
-	self.LDBIcon:Register('ChoreTracker', self.LDB, self.db.profile.minimap)
+	LDBIcon = LibStub('LibDBIcon-1.0')
+	LDBIcon:Register('ChoreTracker', LDB, db.profile.minimap)
 	
-	if self.db.profile.minimap.hide then
-		self.LDBIcon:Hide('ChoreTracker')
+	if db.profile.minimap.hide then
+		LDBIcon:Hide('ChoreTracker')
 	else
-		self.LDBIcon:Show('ChoreTracker')
+		LDBIcon:Show('ChoreTracker')
 	end
 	
 	-- Get instances
@@ -153,7 +147,7 @@ function core:OnEnable()
 end
 
 function core:UpdateChores()
-	--reset data if necessary
+	-- Reset data if necessary
 	core:ResetInstances()
 	core:ResetValorPoints()
 
@@ -162,10 +156,10 @@ function core:UpdateChores()
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 
 	--store Valor Points
-	if vpReset ~= nil then
-		self.db.global[realm][name].valorPoints = {}
-		self.db.global[realm][name].valorPoints.points = earnedThisWeek
-		self.db.global[realm][name].valorPoints.resetTime = vpResetTime
+	if vpResetTime ~= nil then
+		db.global[realm][name].valorPoints = {}
+		db.global[realm][name].valorPoints.points = earnedThisWeek
+		db.global[realm][name].valorPoints.resetTime = vpResetTime
 	end
 
 	--store Saved Instances
@@ -175,22 +169,22 @@ function core:UpdateChores()
 		
 		if trackedInstances[instanceName] ~= nil then
 			if instanceReset > 0 then
-				self.db.global[realm][name].lockouts[instanceName] = {}
-				self.db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
-				self.db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
+				db.global[realm][name].lockouts[instanceName] = {}
+				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
+				db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
 			else
-				self.db.global[realm][name].lockouts[instanceName] = nil
+				db.global[realm][name].lockouts[instanceName] = nil
 			end
 		end
 	end
 end
 
 function core:ResetInstances()
-	for realm,realmTable in pairs(self.db.global) do
+	for realm,realmTable in pairs(db.global) do
 		for name in pairs(realmTable) do
-			for instance,instanceTable in pairs(self.db.global[realm][name].lockouts) do
+			for instance,instanceTable in pairs(db.global[realm][name].lockouts) do
 				if instanceTable.resetTime < time() then
-					self.db.global[realm][name].lockouts[instance] = nil
+					db.global[realm][name].lockouts[instance] = nil
 				end
 			end
 		end
@@ -198,10 +192,10 @@ function core:ResetInstances()
 end
 
 function core:ResetValorPoints()
-	for realm,realmTable in pairs(self.db.global) do
+	for realm,realmTable in pairs(db.global) do
 		for name in pairs(realmTable) do
-			if self.db.global[realm][name].valorPoints.resetTime < time() then
-				self.db.global[realm][name].valorPoints = {
+			if db.global[realm][name].valorPoints.resetTime < time() then
+				db.global[realm][name].valorPoints = {
 					valorPoints = 0,
 					resetTime = 0,					
 				}
@@ -274,14 +268,14 @@ function core:DrawTooltip()
 		nextColumn = nextColumn + 1
 	end
 	
-	for realm in pairs(self.db.global) do
-		for name in pairs(self.db.global[realm]) do
+	for realm in pairs(db.global) do
+		for name in pairs(db.global[realm]) do
 			local characterLine = tooltip:AddLine('')
-			local class = self.db.global[realm][name].class
+			local class = db.global[realm][name].class
 			tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
 			
 			local valorPoints, valorPointColor
-			valorPoints = self.db.global[realm][name].valorPoints.points
+			valorPoints = db.global[realm][name].valorPoints.points
 			if valorPoints == nil then
 				valorPoints = 0
 			end
@@ -294,8 +288,8 @@ function core:DrawTooltip()
 			
 			local nextColumn = 3
 			for instance,abbreviation in pairs(trackedInstances) do
-				if self.db.global[realm][name].lockouts[instance] ~= nil then
-					local defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
+				if db.global[realm][name].lockouts[instance] ~= nil then
+					local defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
 					tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
 				else
 					tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
