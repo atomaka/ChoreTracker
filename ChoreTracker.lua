@@ -8,6 +8,7 @@ local tooltip
 local LBZ
 local zones
 local trackedInstances
+local vpResetTime
 
 local defaults = {
 	global = {},
@@ -28,14 +29,7 @@ local options = {
 			desc = 'Removes the icon from your minimap.',
 			type = 'toggle',
 			get = function(info) return core.db.profile.minimap.hide end,
-			set = function(info, value) 
-				core.db.profile.minimap.hide = value
-				if core.db.profile.minimap.hide then
-					core.LDBIcon:Hide('ChoreTracker')
-				else
-					core.LDBIcon:Show('ChoreTracker')
-				end
-			end,
+			set = function(info, value) core.db.profile.minimap.hide = value core.LDBIcon[value and 'Hide' or 'Show'](core.LDBIcon, 'ChoreTracker') end,
 		}
 	}
 }
@@ -71,11 +65,11 @@ function core:OnInitialize()
 		self.db.global[realm][name].lockouts = {}
 	end
 	
-	-- Register events
+	-- Register events (here for now; track data regardless of whether it is displayed?)
 	local level = UnitLevel('player')
 	if level == 85 then
+		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST','GetNextVPReset')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
-		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
 	end
 end
@@ -83,8 +77,6 @@ end
 function core:OnEnable()
 	LQT = LibStub('LibQTip-1.0')
 	LBZ = LibStub('LibBabble-Zone-3.0')
-	
-	LoadAddOn('Blizzard_Calendar')
 
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
@@ -167,15 +159,13 @@ function core:UpdateChores()
 
 	local realm = GetRealmName()
 	local name = UnitName('player')
-	
-	local vpReset = core:GetNextVPReset()
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 
 	--store Valor Points
 	if vpReset ~= nil then
 		self.db.global[realm][name].valorPoints = {}
 		self.db.global[realm][name].valorPoints.points = earnedThisWeek
-		self.db.global[realm][name].valorPoints.resetTime = vpReset
+		self.db.global[realm][name].valorPoints.resetTime = vpResetTime
 	end
 
 	--store Saved Instances
@@ -266,9 +256,9 @@ function core:GetNextVPReset()
 		resetDate.min = resetTime.min
 		resetDate.sec = resetTime.sec
 
-		return time(resetDate)
+		vpResetTime = time(resetDate)
 	else
-		return nil
+		vpResetTime = nil
 	end
 end
 
