@@ -2,6 +2,9 @@ ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0'
 local core = ChoreTracker
 local LibQTip
 local db
+local LDB
+local LDBIcon
+local tooltip
 
 local trackedInstances = {
 	['Baradin Hold'] = 'BH',
@@ -13,33 +16,19 @@ local trackedInstances = {
 
 local defaults = {
 	global = {},
-	--[[profile = {
+	profile = {
+		minimap = {
+			hide = false,
+		},
 		instances = {},
-	},]]--
+	},
 }
-
---local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
---local options_getter = function(info) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end return t[info[#info]] end
---[[local options = {
-	name = 'ChoreTracker',
-	type = 'group',
-	set = options_setter,
-	get = options_getter,
-	args = {
-		enabled = {
-			name = 'Toggle Instances',
-			type = 'group',
-			order = 10,
-			args = {},
-		}
-	}
-}]]--
 
 local classColors = {}
 local flagColors = {}
 
 function core:OnInitialize()
-	--prepare the database if necessary
+	-- Prepare the database if necessary
 	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
 	local level = UnitLevel('player')
@@ -66,29 +55,19 @@ function core:OnInitialize()
 		self.db.global[realm][name].lockouts = {}
 	end
 	
-	-- Generate our options and add them to Blizzard Interface
-	--[[LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
-	local ACD = LibStub('AceConfigDialog-3.0')
-	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')]]--
-end
-
-function core:OnEnable()
-	LibQTip = LibStub('LibQTip-1.0')
-	
+	-- Register events
 	local level = UnitLevel('player')
 	if level == 85 then
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST', 'UpdateChores')
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
-		--self:RegisterEvent('PLAYER_LEAVING_WORLD', 'UpdateChores')
-		
 	end
+end
+
+function core:OnEnable()
+	LibQTip = LibStub('LibQTip-1.0')
 	LoadAddOn("Blizzard_Calendar")
-	
-	
-	
-	core:CreateChoreFrame()
-	
+
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
 		if class == 'deathknight' then
@@ -111,6 +90,40 @@ function core:OnEnable()
 	--reset data if necessary
 	core:ResetInstances()
 	core:ResetValorPoints()
+	
+	-- Setup LDB
+	self.LDB = LibStub("LibDataBroker-1.1"):NewDataObject("ChoreTracker", {
+		type = "data source",
+		text = "ChoreTracker",
+		icon = "Interface\\AddOns\\ChoreTracker\\icon",
+		OnClick = function() print("ChoreTracker test") end,
+		OnEnter = function(self) 
+			local columnCount = 2
+			for instance,abbreviation in pairs(trackedInstances) do
+				columnCount = columnCount + 1
+			end
+			tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
+			
+			core:DrawTooltip()
+			
+			tooltip:SmartAnchorTo(self) 
+			tooltip:Show() 
+		end,
+		OnLeave = function(self) 
+			LibQTip:Release(tooltip) 
+			tooltip = nil 
+		end,		
+	})
+	
+	-- Deal with minimap
+	self.LDBIcon = LibStub("LibDBIcon-1.0")
+	self.LDBIcon:Register("ChoreTracker", self.LDB, self.db.profile.minimap)
+	
+	if self.db.profile.minimap.hide then
+		self.LDBIcon:Hide("ChoreTracker")
+	else
+		self.LDBIcon:Show("ChoreTracker")
+	end
 end
 
 function core:UpdateChores()
@@ -225,31 +238,23 @@ function core:GetNextVPReset()
 	end
 end
 
-local function anchor_OnEnter(self)
-	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
-	local columnCount = 2
-	for instance,abbreviation in pairs(trackedInstances) do
-		columnCount = columnCount + 1
-	end
-	
-	self.tooltip =  LibQTip:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT')
-
+function core:DrawTooltip()
 	--create the tooltip header
-	self.tooltip:AddHeader('')
-	local valorPointColumn = self.tooltip:AddColumn('LEFT')
-	self.tooltip:SetCell(1, 1, '')
-	self.tooltip:SetCell(1, 2, 'VP')
+	tooltip:AddHeader('')
+	local valorPointColumn = tooltip:AddColumn('LEFT')
+	tooltip:SetCell(1, 1, '')
+	tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
 	for instance,abbreviation in pairs(trackedInstances) do
-		self.tooltip:SetCell(1, nextColumn, abbreviation, nil, 'CENTER')
+		tooltip:SetCell(1, nextColumn, abbreviation, nil, 'CENTER')
 		nextColumn = nextColumn + 1
 	end
 	
 	for realm in pairs(self.db.global) do
 		for name in pairs(self.db.global[realm]) do
-			local characterLine = self.tooltip:AddLine('')
+			local characterLine = tooltip:AddLine('')
 			local class = self.db.global[realm][name].class
-			self.tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
+			tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
 			
 			local valorPoints, valorPointColor
 			valorPoints = self.db.global[realm][name].valorPoints.points
@@ -261,47 +266,18 @@ local function anchor_OnEnter(self)
 			else
 				valorPointColor = flagColors['green']
 			end
-			self.tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'RIGHT')
+			tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'RIGHT')
 			
 			local nextColumn = 3
 			for instance,abbreviation in pairs(trackedInstances) do
 				if self.db.global[realm][name].lockouts[instance] ~= nil then
 					local defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
-					self.tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
+					tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
 				else
-					self.tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
+					tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
 				end
 				nextColumn = nextColumn + 1
 			end
 		end
 	end
-	
-	self.tooltip:SmartAnchorTo(self)
-	self.tooltip:Show()
-end
-
-local function anchor_OnLeave(self)
-	LibQTip:Release(self.tooltip)
-	self.tooltip = nil
-end
-
-function core:CreateChoreFrame()
-	local ChoresDisplay = CreateFrame('Frame', 'ChoreTrackerFrame', UIParent)
-	ChoresDisplay:SetPoint('TOPLEFT')
-	ChoresDisplay.background = ChoresDisplay:CreateTexture(nil, 'BACKGROUND')
-	ChoresDisplay.background:SetAllPoints(true)
-	ChoresDisplay.background:SetTexture('Interface\\AddOns\\ChoreTracker\\icon')
-	ChoresDisplay:SetHeight(32)
-	ChoresDisplay:SetWidth(32)
-	ChoresDisplay:Show()
-	
-	ChoresDisplay:EnableMouse(true)
-	ChoresDisplay:SetMovable(true)
-	ChoresDisplay:RegisterForDrag('LeftButton')
-	
-	ChoresDisplay:SetScript('OnDragStart', ChoresDisplay.StartMoving)
-	ChoresDisplay:SetScript('OnDragStop', ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnHide', ChoresDisplay.StopMovingOrSizing)
-	ChoresDisplay:SetScript('OnEnter', anchor_OnEnter)
-	ChoresDisplay:SetScript('OnLeave', anchor_OnLeave)
 end
