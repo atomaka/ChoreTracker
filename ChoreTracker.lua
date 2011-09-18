@@ -7,7 +7,6 @@ local LDBIcon
 local tooltip
 local LBZ
 local zones
-
 local trackedInstances
 
 local defaults = {
@@ -18,6 +17,27 @@ local defaults = {
 		},
 		instances = {},
 	},
+}
+
+local options = {
+	name = 'ChoreTracker',
+	type = 'group',
+	args = {
+		minimap = {
+			name = 'Hide Minimap Icon',
+			desc = 'Removes the icon from your minimap.',
+			type = 'toggle',
+			get = function(info) return core.db.profile.minimap.hide end,
+			set = function(info, value) 
+				core.db.profile.minimap.hide = value
+				if core.db.profile.minimap.hide then
+					core.LDBIcon:Hide('ChoreTracker')
+				else
+					core.LDBIcon:Show('ChoreTracker')
+				end
+			end,
+		}
+	}
 }
 
 local classColors = {}
@@ -62,7 +82,7 @@ end
 
 function core:OnEnable()
 	LQT = LibStub('LibQTip-1.0')
-	LBZ = LibStub("LibBabble-Zone-3.0")
+	LBZ = LibStub('LibBabble-Zone-3.0')
 	
 	LoadAddOn('Blizzard_Calendar')
 
@@ -94,7 +114,7 @@ function core:OnEnable()
 		type = 'data source',
 		text = 'ChoreTracker',
 		icon = 'Interface\\AddOns\\ChoreTracker\\icon',
-		OnClick = function() print('ChoreTracker test') end,
+		OnClick = function() LibStub("AceConfigDialog-3.0"):Open("ChoreTracker") end,
 		OnEnter = function(self) 
 			local columnCount = 2
 			for instance,abbreviation in pairs(trackedInstances) do
@@ -133,6 +153,11 @@ function core:OnEnable()
 		[zones['Blackwing Descent']] = 'BWD',
 		[zones['Throne of the Four Winds']] = '4W',
 	}
+	
+	-- Add options to Interface Panel
+	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
+	local ACD = LibStub('AceConfigDialog-3.0')
+	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
 end
 
 function core:UpdateChores()
