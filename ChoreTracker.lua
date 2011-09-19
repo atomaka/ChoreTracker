@@ -103,7 +103,13 @@ function core:OnEnable()
 		type = 'data source',
 		text = 'ChoreTracker',
 		icon = 'Interface\\AddOns\\ChoreTracker\\icon',
-		OnClick = function() LibStub("AceConfigDialog-3.0"):Open("ChoreTracker") end,
+		OnClick = function() 
+				if LibStub("AceConfigDialog-3.0").OpenFrames['ChoreTracker'] then
+					LibStub('AceConfigDialog-3.0'):Close('ChoreTracker')
+				else
+					LibStub('AceConfigDialog-3.0'):Open('ChoreTracker')
+				end
+		end,
 		OnEnter = function(self) 
 			local columnCount = 2
 			for instance,abbreviation in pairs(trackedInstances) do
