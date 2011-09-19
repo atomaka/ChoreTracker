@@ -66,6 +66,9 @@ function core:OnInitialize()
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
 	end
 	
+	-- Get calendar events information
+	OpenCalendar()
+	
 	-- Reset data if necessary
 	core:ResetInstances()
 	core:ResetValorPoints()
