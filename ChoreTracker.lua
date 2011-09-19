@@ -268,7 +268,40 @@ end
 function core:DrawTooltip()
 	-- Instead of drawing the tooltip directly from data, we will populate a table,
 	-- sort the table, and then use the table to draw the tooltip
-
+	local tooltipTable = {}
+	for realm in pairs(db.global) do
+		for name in pairs(db.global[realm]) do
+			local valorPoints = db.global[realm][name].valorPoints.points
+			if valorPoints == nil then
+				valorPoints = 0
+			end
+			tooltipTable[name] = { name = name, valorPoints = valorPoints }
+			
+			for instance in pairs(trackedInstances) do
+				local defeatedBosses
+				if db.global[realm][name].lockouts[instance] ~= nil then
+					defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
+				else
+					defeatedBosses = 0
+				end
+				tooltipTable[name][instance] = defeatedBosses
+			end
+		end
+	end
+	
+		
+	-- Sort by name for now
+	table.sort(tooltipTable, function(a, b) return a.name < b.name end )
+	
+	for name,info in pairs(tooltipTable) do
+		local printString = name
+		
+		for header,value in pairs(info) do
+			printString = printString .. ' ' .. value
+		end
+		print(printString)
+	end
+	
 	tooltip:AddHeader('')
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
