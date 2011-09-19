@@ -272,10 +272,11 @@ function core:DrawTooltip()
 	for realm in pairs(db.global) do
 		for name in pairs(db.global[realm]) do
 			local valorPoints = db.global[realm][name].valorPoints.points
+			local class = db.global[realm][name].class
 			if valorPoints == nil then
 				valorPoints = 0
 			end
-			tooltipTable[name] = { name = name, valorPoints = valorPoints }
+			tooltipTable[name] = { name = name, realm = realm, class = class, valorPoints = valorPoints }
 			
 			for instance in pairs(trackedInstances) do
 				local defeatedBosses
@@ -291,16 +292,7 @@ function core:DrawTooltip()
 	
 		
 	-- Sort by name for now
-	table.sort(tooltipTable, function(a, b) return a.name < b.name end )
-	
-	for name,info in pairs(tooltipTable) do
-		local printString = name
-		
-		for header,value in pairs(info) do
-			printString = printString .. ' ' .. value
-		end
-		print(printString)
-	end
+	table.sort(tooltipTable, function(a, b) return a.name:lower() < b.name:lower() end )
 	
 	tooltip:AddHeader('')
 	local valorPointColumn = tooltip:AddColumn('LEFT')
@@ -312,34 +304,29 @@ function core:DrawTooltip()
 		nextColumn = nextColumn + 1
 	end
 	
-	for realm in pairs(db.global) do
-		for name in pairs(db.global[realm]) do
-			local characterLine = tooltip:AddLine('')
-			local class = db.global[realm][name].class
-			tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
-			
-			local valorPoints, valorPointColor
-			valorPoints = db.global[realm][name].valorPoints.points
-			if valorPoints == nil then
-				valorPoints = 0
-			end
-			if valorPoints == 980 then
-				valorPointColor = flagColors['red']
+	for name,information in pairs(tooltipTable) do
+		local characterLine = tooltip:AddLine('')
+		tooltip:SetCell(characterLine, 1, information.name, classColors[information.class], 'LEFT')
+		
+		local valorPointColor
+		if information.valorPoints == 980 then
+			valorPointColor = flagColors['red']
+		else
+			valorPointColor = flagColors['green']
+		end
+		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
+		
+		local nextColumn = 3
+		for instance, abbreviation in pairs(trackedInstances) do
+			local instanceColor
+			if information[instance] == 0 then
+				instanceColor = flagColors['green']
 			else
-				valorPointColor = flagColors['green']
+				instanceColor = flagColors['red']
 			end
-			tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'RIGHT')
+			tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 			
-			local nextColumn = 3
-			for instance,abbreviation in pairs(trackedInstances) do
-				if db.global[realm][name].lockouts[instance] ~= nil then
-					local defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
-					tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
-				else
-					tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
-				end
-				nextColumn = nextColumn + 1
-			end
+			nextColumn = nextColumn + 1
 		end
 	end
 end
