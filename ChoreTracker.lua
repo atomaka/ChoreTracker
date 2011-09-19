@@ -266,7 +266,9 @@ function core:GetNextVPReset()
 end
 
 function core:DrawTooltip()
-	--create the tooltip header
+	-- Instead of drawing the tooltip directly from data, we will populate a table,
+	-- sort the table, and then use the table to draw the tooltip
+
 	tooltip:AddHeader('')
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
