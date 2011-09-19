@@ -110,13 +110,7 @@ function core:OnEnable()
 					LibStub('AceConfigDialog-3.0'):Open('ChoreTracker')
 				end
 		end,
-		OnEnter = function(self) 
-			local columnCount = 2
-			for instance,abbreviation in pairs(trackedInstances) do
-				columnCount = columnCount + 1
-			end
-			tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
-			
+		OnEnter = function(self)
 			core:DrawTooltip()
 			
 			tooltip:SmartAnchorTo(self) 
@@ -266,8 +260,13 @@ function core:GetNextVPReset()
 end
 
 function core:DrawTooltip()
-	-- Instead of drawing the tooltip directly from data, we will populate a table,
-	-- sort the table, and then use the table to draw the tooltip
+	local columnCount = 2
+	for instance,abbreviation in pairs(trackedInstances) do
+		columnCount = columnCount + 1
+	end
+	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
+
+	-- Populate a table with the information we want for our tooltip
 	local tooltipTable = {}
 	for realm in pairs(db.global) do
 		for name in pairs(db.global[realm]) do
@@ -276,7 +275,7 @@ function core:DrawTooltip()
 			if valorPoints == nil then
 				valorPoints = 0
 			end
-			tooltipTable[name] = { name = name, realm = realm, class = class, valorPoints = valorPoints }
+			tooltipTable[name .. '-' .. realm] = { name = name, realm = realm, class = class, valorPoints = valorPoints }
 			
 			for instance in pairs(trackedInstances) do
 				local defeatedBosses
@@ -285,15 +284,18 @@ function core:DrawTooltip()
 				else
 					defeatedBosses = 0
 				end
-				tooltipTable[name][instance] = defeatedBosses
+				tooltipTable[name .. '-' .. realm][instance] = defeatedBosses
 			end
 		end
 	end
 	
 		
 	-- Sort by name for now
-	table.sort(tooltipTable, function(a, b) return a.name:lower() < b.name:lower() end )
+	table.sort(tooltipTable, function(a, b) return a.name < b.name end )
 	
+	
+	-- Draw the tooltip
+	tooltip:SetScale(1)
 	tooltip:AddHeader('')
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
