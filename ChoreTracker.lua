@@ -268,10 +268,13 @@ function core:DrawTooltip()
 
 	-- Populate a table with the information we want for our tooltip
 	local tooltipTable = {}
+	local characters = {}
 	for realm in pairs(db.global) do
 		for name in pairs(db.global[realm]) do
+			table.insert(characters,name .. '-' .. realm)
 			local valorPoints = db.global[realm][name].valorPoints.points
 			local class = db.global[realm][name].class
+			
 			if valorPoints == nil then
 				valorPoints = 0
 			end
@@ -291,7 +294,7 @@ function core:DrawTooltip()
 	
 		
 	-- Sort by name for now
-	table.sort(tooltipTable, function(a, b) return a.name < b.name end )
+	table.sort(characters, function(a, b) return tooltipTable[a].name:lower() < tooltipTable[b].name:lower() end )
 	
 	
 	-- Draw the tooltip
@@ -306,27 +309,27 @@ function core:DrawTooltip()
 		nextColumn = nextColumn + 1
 	end
 	
-	for name,information in pairs(tooltipTable) do
+	for _,name in pairs(characters) do
 		local characterLine = tooltip:AddLine('')
-		tooltip:SetCell(characterLine, 1, information.name, classColors[information.class], 'LEFT')
+		tooltip:SetCell(characterLine, 1, tooltipTable[name].name, classColors[tooltipTable[name].class], 'LEFT')
 		
 		local valorPointColor
-		if information.valorPoints == 980 then
+		if tooltipTable[name].valorPoints == 980 then
 			valorPointColor = flagColors['red']
 		else
 			valorPointColor = flagColors['green']
 		end
-		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
+		tooltip:SetCell(characterLine, 2, tooltipTable[name].valorPoints, valorPointColor, 'RIGHT')
 		
 		local nextColumn = 3
 		for instance, abbreviation in pairs(trackedInstances) do
 			local instanceColor
-			if information[instance] == 0 then
+			if tooltipTable[name][instance] == 0 then
 				instanceColor = flagColors['green']
 			else
 				instanceColor = flagColors['red']
 			end
-			tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
+			tooltip:SetCell(characterLine, nextColumn, tooltipTable[name][instance], instanceColor, 'RIGHT')
 			
 			nextColumn = nextColumn + 1
 		end
