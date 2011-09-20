@@ -63,7 +63,7 @@ function core:OnInitialize()
 	if level == 85 then
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST','GetNextVPReset')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
-		self:RegisterEvent('CHAT_MSG_CURRENCY', 'UpdateChores')
+		self:RegisterEvent('CHAT_MSG_CURRENCY', 'PrepareUpdate')
 	end
 	
 	-- Get calendar events information
@@ -153,6 +153,10 @@ function core:OnEnable()
 	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
 	local ACD = LibStub('AceConfigDialog-3.0')
 	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+end
+
+function core:PrepareUpdate()
+	GetSavedInstanceInfo()
 end
 
 function core:UpdateChores()
