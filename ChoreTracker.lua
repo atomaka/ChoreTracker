@@ -9,6 +9,8 @@ local defaults = {
 		minimap = {
 			hide = false,
 		},
+		sortType = 1,
+		sortDirection = 1,
 		instances = {},
 	},
 }
@@ -23,7 +25,23 @@ local options = {
 			type = 'toggle',
 			get = function(info) return db.profile.minimap.hide end,
 			set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
-		}
+		},
+		sortType = {
+			name = 'Sort Field',
+			desc = 'Field to sort the tooltip by.',
+			type = 'select',
+			values = { 'character', 'vp' },
+			get = function(info) return db.profile.sortType end,
+			set = function(info, value) db.profile.sortType = value end,
+		},
+		sortingDirection = {
+			name = 'Sorting Direction',
+			desc = 'Which direction to sort.',
+			type = 'select',
+			values = { 'ascending', 'descending' },
+			get = function(info) return db.profile.sortDirection end,
+			set = function(info, value) db.profile.sortDirection = value end,
+		},
 	}
 }
 
@@ -110,13 +128,7 @@ function core:OnEnable()
 					LibStub('AceConfigDialog-3.0'):Open('ChoreTracker')
 				end
 		end,
-		OnEnter = function(self) 
-			local columnCount = 2
-			for instance,abbreviation in pairs(trackedInstances) do
-				columnCount = columnCount + 1
-			end
-			tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
-			
+		OnEnter = function(self)
 			core:DrawTooltip()
 			
 			tooltip:SmartAnchorTo(self) 
@@ -270,8 +282,60 @@ function core:GetNextVPReset()
 end
 
 function core:DrawTooltip()
-	--create the tooltip header
+	local columnCount = 2
+	for instance,abbreviation in pairs(trackedInstances) do
+		columnCount = columnCount + 1
+	end
+	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
+
+	-- Populate a table with the information we want for our tooltip
+	local tooltipTable = {}
+	for realm in pairs(db.global) do
+		for name in pairs(db.global[realm]) do
+			local valorPoints = db.global[realm][name].valorPoints.points
+			local class = db.global[realm][name].class
+			
+			if valorPoints == nil then
+				valorPoints = 0
+			end
+			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints }
+			
+			for instance in pairs(trackedInstances) do
+				local defeatedBosses
+				if db.global[realm][name].lockouts[instance] ~= nil then
+					defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
+				else
+					defeatedBosses = 0
+				end
+				characterTable[instance] = defeatedBosses
+			end
+			
+			table.insert(tooltipTable,characterTable)
+		end
+	end
+	
+	-- Sort table according to options.
+	local sortTooltip = function(a, b)
+		if db.profile.sortType == 1 then
+			if db.profile.sortDirection == 1 then
+				return a.name:lower() < b.name:lower()
+			else
+				return a.name:lower() > b.name:lower()
+			end
+		elseif db.profile.sortType == 2 then
+			if db.profile.sortDirection == 1 then
+				return a.valorPoints < b.valorPoints
+			else
+				return a.valorPoints > b.valorPoints
+			end
+		end
+	end
+	table.sort(tooltipTable, sortTooltip )
+	
+	
+	-- Draw the tooltip
 	tooltip:AddHeader('')
+	tooltip:SetScale(1)
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
 	tooltip:SetCell(1, 2, 'VP')
@@ -281,34 +345,29 @@ function core:DrawTooltip()
 		nextColumn = nextColumn + 1
 	end
 	
-	for realm in pairs(db.global) do
-		for name in pairs(db.global[realm]) do
-			local characterLine = tooltip:AddLine('')
-			local class = db.global[realm][name].class
-			tooltip:SetCell(characterLine, 1, name, classColors[class], 'LEFT')
-			
-			local valorPoints, valorPointColor
-			valorPoints = db.global[realm][name].valorPoints.points
-			if valorPoints == nil then
-				valorPoints = 0
-			end
-			if valorPoints == 980 then
-				valorPointColor = flagColors['red']
+	for _,information in pairs(tooltipTable) do
+		local characterLine = tooltip:AddLine('')
+		tooltip:SetCell(characterLine, 1, information.name, classColors[information.class], 'LEFT')
+		
+		local valorPointColor
+		if information.valorPoints == 980 then
+			valorPointColor = flagColors['red']
+		else
+			valorPointColor = flagColors['green']
+		end
+		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
+		
+		local nextColumn = 3
+		for instance, abbreviation in pairs(trackedInstances) do
+			local instanceColor
+			if information[instance] == 0 then
+				instanceColor = flagColors['green']
 			else
-				valorPointColor = flagColors['green']
+				instanceColor = flagColors['red']
 			end
-			tooltip:SetCell(characterLine, 2, valorPoints, valorPointColor, 'RIGHT')
+			tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 			
-			local nextColumn = 3
-			for instance,abbreviation in pairs(trackedInstances) do
-				if db.global[realm][name].lockouts[instance] ~= nil then
-					local defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
-					tooltip:SetCell(characterLine, nextColumn, defeatedBosses, flagColors['red'], 'RIGHT')
-				else
-					tooltip:SetCell(characterLine, nextColumn, '0', flagColors['green'], 'RIGHT')
-				end
-				nextColumn = nextColumn + 1
-			end
+			nextColumn = nextColumn + 1
 		end
 	end
 end
