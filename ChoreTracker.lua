@@ -30,7 +30,7 @@ local options = {
 			name = 'Sort Field',
 			desc = 'Field to sort the tooltip by.',
 			type = 'select',
-			values = { 'character', 'vp' },
+			values = { 'Character', 'Valor Points' },
 			get = function(info) return db.profile.sortType end,
 			set = function(info, value) db.profile.sortType = value end,
 		},
@@ -38,11 +38,11 @@ local options = {
 			name = 'Sorting Direction',
 			desc = 'Which direction to sort.',
 			type = 'select',
-			values = { 'ascending', 'descending' },
+			values = { 'Ascending', 'Descending' },
 			get = function(info) return db.profile.sortDirection end,
 			set = function(info, value) db.profile.sortDirection = value end,
 		},
-	}
+	},
 }
 
 local classColors = {}
@@ -75,23 +75,6 @@ function core:OnInitialize()
 		}
 		db.global[realm][name].lockouts = {}
 	end
-	
-	-- Register events (here for now; track data regardless of whether it is displayed?)
-	local level = UnitLevel('player')
-	if level == 85 then
-		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST','GetNextVPReset')
-		self:RegisterEvent('UPDATE_INSTANCE_INFO', 'UpdateChores')
-		self:RegisterEvent('CHAT_MSG_CURRENCY', 'PrepareUpdate')
-	end
-	
-	-- Get calendar events information (CalendarFrame_CloseEvent() IS necessary)
-	--CalendarFrame_CloseEvent()
-	FunctionThatWillNotBeFound()
-	OpenCalendar()
-	
-	-- Reset data if necessary
-	core:ResetInstances()
-	core:ResetValorPoints()
 end
 
 function core:OnEnable()
@@ -155,6 +138,7 @@ function core:OnEnable()
 	-- Get instances
 	zones = LBZ:GetLookupTable()
 	
+	-- Move to a profile variable populated by instances added by user
 	trackedInstances = {
 		[zones['Baradin Hold']] = 'BH',
 		[zones['Firelands']] = 'FL',
@@ -167,12 +151,46 @@ function core:OnEnable()
 	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
 	local ACD = LibStub('AceConfigDialog-3.0')
 	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+	
+	-- Register events
+	local level = UnitLevel('player')
+	if level == 85 then
+		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
+		self:RegisterEvent('UPDATE_INSTANCE_INFO')
+		self:RegisterEvent('CHAT_MSG_CURRENCY')
+	end
+	
+	-- Get calendar events information
+	OpenCalendar()
+	
+	-- Reset data if necessary
+	core:ResetInstances()
+	core:ResetValorPoints()
 end
 
-function core:PrepareUpdate()
+
+
+
+--[[		EVENTS		]]--
+function core:CALENDAR_UPDATE_EVENT_LIST()
+	print('CALENDAR_UPDATE_EVENT_LIST{)')
+	core:GetNextVPReset()
+end
+
+function core:UPDATE_INSTANCE_INFO()
+	print('UPDATE_INSTANCE_INFO{)')
+	core:UpdateChores()
+end
+
+function core:CHAT_MSG_CURRENCY()
+	print('CHAT_MSG_CURRENCY{)')
 	RequestRaidInfo()
 end
 
+
+
+
+--[[		FUNCTIONS		]]--
 function core:UpdateChores()
 	-- Reset data if necessary
 	core:ResetInstances()
@@ -182,14 +200,14 @@ function core:UpdateChores()
 	local name = UnitName('player')
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 
-	--store Valor Points
+	-- Store Valor Points
 	if vpResetTime ~= nil then
 		db.global[realm][name].valorPoints = {}
 		db.global[realm][name].valorPoints.points = earnedThisWeek
 		db.global[realm][name].valorPoints.resetTime = vpResetTime
 	end
 
-	--store Saved Instances
+	-- Store Saved Instances
 	local savedInstances = GetNumSavedInstances()
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
@@ -232,7 +250,6 @@ function core:ResetValorPoints()
 end
 
 function core:GetNextVPReset()
-	OpenCalendar()
 	-- We need to have access to the instance lockouts on the calendar.
 	local currentCalendarSetting = GetCVar('calendarShowResets')
 	SetCVar('calendarShowResets', 1)
@@ -282,12 +299,12 @@ function core:GetNextVPReset()
 	else
 		vpResetTime = nil
 	end
-	
-	-- Update after we have the vpResetTime to make sure we set valor points
-	core:UpdateChores()
 end
 
 function core:DrawTooltip()
+	-- UpdateChores before we show the tooltip to make sure we have the most recent data
+	core:UpdateChores()
+
 	local columnCount = 2
 	for instance,abbreviation in pairs(trackedInstances) do
 		columnCount = columnCount + 1
