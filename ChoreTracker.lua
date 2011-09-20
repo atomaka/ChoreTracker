@@ -9,6 +9,8 @@ local defaults = {
 		minimap = {
 			hide = false,
 		},
+		sortType = 1,
+		sortDirection = 1,
 		instances = {},
 	},
 }
@@ -23,7 +25,23 @@ local options = {
 			type = 'toggle',
 			get = function(info) return db.profile.minimap.hide end,
 			set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
-		}
+		},
+		sortType = {
+			name = 'Sort Field',
+			desc = 'Field to sort the tooltip by.',
+			type = 'select',
+			values = { 'character', 'vp' },
+			get = function(info) return db.profile.sortType end,
+			set = function(info, value) db.profile.sortType = value end,
+		},
+		sortingDirection = {
+			name = 'Sorting Direction',
+			desc = 'Which direction to sort.',
+			type = 'select',
+			values = { 'ascending', 'descending' },
+			get = function(info) return db.profile.sortDirection end,
+			set = function(info, value) db.profile.sortDirection = value end,
+		},
 	}
 }
 
@@ -268,17 +286,15 @@ function core:DrawTooltip()
 
 	-- Populate a table with the information we want for our tooltip
 	local tooltipTable = {}
-	local characters = {}
 	for realm in pairs(db.global) do
 		for name in pairs(db.global[realm]) do
-			table.insert(characters,name .. '-' .. realm)
 			local valorPoints = db.global[realm][name].valorPoints.points
 			local class = db.global[realm][name].class
 			
 			if valorPoints == nil then
 				valorPoints = 0
 			end
-			tooltipTable[name .. '-' .. realm] = { name = name, realm = realm, class = class, valorPoints = valorPoints }
+			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints }
 			
 			for instance in pairs(trackedInstances) do
 				local defeatedBosses
@@ -287,19 +303,36 @@ function core:DrawTooltip()
 				else
 					defeatedBosses = 0
 				end
-				tooltipTable[name .. '-' .. realm][instance] = defeatedBosses
+				characterTable[instance] = defeatedBosses
 			end
+			
+			table.insert(tooltipTable,characterTable)
 		end
 	end
 	
+	local sortTooltip = function(a, b)
+		if db.profile.sortType == 1 then
+			if db.profile.sortDirection == 1 then
+				return a.name:lower() < b.name:lower()
+			else
+				return a.name:lower() > b.name:lower()
+			end
+		elseif db.profile.sortType == 2 then
+			if db.profile.sortDirection == 1 then
+				return a.valorPoints < b.valorPoints
+			else
+				return a.valorPoints > b.valorPoints
+			end
+		end
+	end
 		
 	-- Sort by name for now
-	table.sort(characters, function(a, b) return tooltipTable[a].name:lower() < tooltipTable[b].name:lower() end )
+	table.sort(tooltipTable, sortTooltip )
 	
 	
 	-- Draw the tooltip
-	tooltip:SetScale(1)
 	tooltip:AddHeader('')
+	tooltip:SetScale(1)
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
 	tooltip:SetCell(1, 2, 'VP')
@@ -309,27 +342,27 @@ function core:DrawTooltip()
 		nextColumn = nextColumn + 1
 	end
 	
-	for _,name in pairs(characters) do
+	for _,information in pairs(tooltipTable) do
 		local characterLine = tooltip:AddLine('')
-		tooltip:SetCell(characterLine, 1, tooltipTable[name].name, classColors[tooltipTable[name].class], 'LEFT')
+		tooltip:SetCell(characterLine, 1, information.name, classColors[information.class], 'LEFT')
 		
 		local valorPointColor
-		if tooltipTable[name].valorPoints == 980 then
+		if information.valorPoints == 980 then
 			valorPointColor = flagColors['red']
 		else
 			valorPointColor = flagColors['green']
 		end
-		tooltip:SetCell(characterLine, 2, tooltipTable[name].valorPoints, valorPointColor, 'RIGHT')
+		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
 		
 		local nextColumn = 3
 		for instance, abbreviation in pairs(trackedInstances) do
 			local instanceColor
-			if tooltipTable[name][instance] == 0 then
+			if information[instance] == 0 then
 				instanceColor = flagColors['green']
 			else
 				instanceColor = flagColors['red']
 			end
-			tooltip:SetCell(characterLine, nextColumn, tooltipTable[name][instance], instanceColor, 'RIGHT')
+			tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 			
 			nextColumn = nextColumn + 1
 		end
