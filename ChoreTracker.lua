@@ -85,7 +85,8 @@ function core:OnInitialize()
 	end
 	
 	-- Get calendar events information
-	OpenCalendar()
+	--OpenCalendar()
+	LoadAddOn('Blizzard_Calendar')
 	
 	-- Reset data if necessary
 	core:ResetInstances()
