@@ -168,7 +168,7 @@ function core:OnEnable()
 end
 
 function core:PrepareUpdate()
-	GetSavedInstanceInfo()
+	RequestRaidInfo()
 end
 
 function core:UpdateChores()
