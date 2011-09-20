@@ -310,6 +310,7 @@ function core:DrawTooltip()
 		end
 	end
 	
+	-- Sort table according to options.
 	local sortTooltip = function(a, b)
 		if db.profile.sortType == 1 then
 			if db.profile.sortDirection == 1 then
@@ -325,8 +326,6 @@ function core:DrawTooltip()
 			end
 		end
 	end
-		
-	-- Sort by name for now
 	table.sort(tooltipTable, sortTooltip )
 	
 	
