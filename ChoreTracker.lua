@@ -84,8 +84,9 @@ function core:OnInitialize()
 		self:RegisterEvent('CHAT_MSG_CURRENCY', 'PrepareUpdate')
 	end
 	
-	-- Get calendar events information
-	CalendarFrame_CloseEvent()
+	-- Get calendar events information (CalendarFrame_CloseEvent() IS necessary)
+	--CalendarFrame_CloseEvent()
+	FunctionThatWillNotBeFound()
 	OpenCalendar()
 	
 	-- Reset data if necessary
