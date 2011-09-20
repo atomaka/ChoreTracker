@@ -30,7 +30,7 @@ local options = {
 			name = 'Sort Field',
 			desc = 'Field to sort the tooltip by.',
 			type = 'select',
-			values = { 'Character', 'Valor Points' },
+			values = { 'Character', 'Valor Points', 'Class' },
 			get = function(info) return db.profile.sortType end,
 			set = function(info, value) db.profile.sortType = value end,
 		},
@@ -173,17 +173,14 @@ end
 
 --[[		EVENTS		]]--
 function core:CALENDAR_UPDATE_EVENT_LIST()
-	print('CALENDAR_UPDATE_EVENT_LIST{)')
 	core:GetNextVPReset()
 end
 
 function core:UPDATE_INSTANCE_INFO()
-	print('UPDATE_INSTANCE_INFO{)')
 	core:UpdateChores()
 end
 
 function core:CHAT_MSG_CURRENCY()
-	print('CHAT_MSG_CURRENCY{)')
 	RequestRaidInfo()
 end
 
@@ -207,8 +204,11 @@ function core:UpdateChores()
 		db.global[realm][name].valorPoints.resetTime = vpResetTime
 	end
 
-	-- Store Saved Instances
+	-- Store Saved Instances; sometimes, there can be two lockouts to the same instance
 	local savedInstances = GetNumSavedInstances()
+	
+	
+	
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
 		
@@ -217,8 +217,10 @@ function core:UpdateChores()
 				db.global[realm][name].lockouts[instanceName] = {}
 				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
 				db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
-			else
-				db.global[realm][name].lockouts[instanceName] = nil
+			-- Let's not delete instances with no lockout for now.  ResetInstances() should take care of this
+			-- and it solves an issue with two lockouts to the same instance being listed.
+			--else
+			--	db.global[realm][name].lockouts[instanceName] = nil
 			end
 		end
 	end
@@ -339,18 +341,22 @@ function core:DrawTooltip()
 	
 	-- Sort table according to options.
 	local sortTooltip = function(a, b)
+		local aValue, bValue
 		if db.profile.sortType == 1 then
-			if db.profile.sortDirection == 1 then
-				return a.name:lower() < b.name:lower()
-			else
-				return a.name:lower() > b.name:lower()
-			end
+			aValue = a.name:lower()
+			bValue = b.name:lower()
 		elseif db.profile.sortType == 2 then
-			if db.profile.sortDirection == 1 then
-				return a.valorPoints < b.valorPoints
-			else
-				return a.valorPoints > b.valorPoints
-			end
+			aValue = a.valorPoints
+			bValue = b.valorPoints
+		elseif db.profile.sortType == 3 then
+			aValue = a.class
+			bValue = b.class
+		end
+		
+		if db.profile.sortDirection == 1 then
+			return aValue < bValue
+		else
+			return aValue > bValue
 		end
 	end
 	table.sort(tooltipTable, sortTooltip )
