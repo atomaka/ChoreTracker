@@ -85,8 +85,8 @@ function core:OnInitialize()
 	end
 	
 	-- Get calendar events information
-	--OpenCalendar()
-	LoadAddOn('Blizzard_Calendar')
+	CalendarFrame_CloseEvent()
+	OpenCalendar()
 	
 	-- Reset data if necessary
 	core:ResetInstances()
@@ -231,6 +231,7 @@ function core:ResetValorPoints()
 end
 
 function core:GetNextVPReset()
+	OpenCalendar()
 	-- We need to have access to the instance lockouts on the calendar.
 	local currentCalendarSetting = GetCVar('calendarShowResets')
 	SetCVar('calendarShowResets', 1)
