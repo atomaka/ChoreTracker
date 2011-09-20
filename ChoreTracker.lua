@@ -230,15 +230,15 @@ function core:ResetValorPoints()
 end
 
 function core:GetNextVPReset()
-	--prepare calendar
-	local currentCalendarSetting = GetCVar('calendarShowResets') -- get current value and store
-	SetCVar('calendarShowResets', 1) -- set it to what we want
+	-- We need to have access to the instance lockouts on the calendar.
+	local currentCalendarSetting = GetCVar('calendarShowResets')
+	SetCVar('calendarShowResets', 1)
 
-	--figure out what time the server resets daily information
+	-- Figure out what time the server resets daily information
 	local questReset = GetQuestResetTime()
 	local resetTime = date('*t', time() + questReset)
 	
-	--figure out reset day using next BH lockout
+	-- Figure out reset day using next BH lockout
 	local _, month, day, year = CalendarGetDate()
 	
 	local monthOffset = 0
@@ -266,10 +266,10 @@ function core:GetNextVPReset()
 		end
 	end
 	
-	--return calendar
+	-- Reset the calendar to the original settings
 	SetCVar('calendarShowResets', currentCalendarSetting)
 	
-	--and combine for the reset timestamp
+	-- And combine for the reset timestamp
 	if(resetDate ~= nil) then
 		resetDate.hour = resetTime.hour
 		resetDate.min = resetTime.min
@@ -279,6 +279,9 @@ function core:GetNextVPReset()
 	else
 		vpResetTime = nil
 	end
+	
+	-- Update after we have the vpResetTime to make sure we set valor points
+	core:UpdateChores()
 end
 
 function core:DrawTooltip()
