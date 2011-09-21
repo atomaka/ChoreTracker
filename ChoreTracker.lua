@@ -22,6 +22,14 @@ local defaults = {
 			[Z['Blackwing Descent']] = 'BWD',
 			[Z['Throne of the Four Winds']] = '4W',			
 		},
+		instanceEnable = {
+			[Z['Baradin Hold']] = true,
+			[Z['Firelands']] = true,
+			[Z['The Bastion of Twilight']] = true,
+			[Z['Blackwing Descent']] = true,
+			[Z['Throne of the Four Winds']] = true,			
+		},
+		instanceRemoves = { }
 	},
 }
 
@@ -68,7 +76,13 @@ local options = {
 					name = 'Add instance to track.',
 					desc = 'Enter an instance on a seven day lockout that you would like ChoreTracker to track.',
 					type = 'input',
+					order = 1,
 					set = function(info, value) db.profile.instances[value] = '' end,
+				},
+				barHeader = {
+					name = 'Instances',
+					type = 'header',
+					order = 2,
 				},
 			},
 		}
@@ -165,13 +179,37 @@ function core:OnEnable()
 	end
 	
 	-- Setup instance stuff for options
+	local i = 1
 	for instance, abbreviation in pairs(db.profile.instances) do
+		options.args.instances.args[instance .. 'Enable'] = {
+			type = 'toggle',
+			name = instance,
+			order = 4 * i,
+			get = function(info) return db.profile.instanceEnable[instance] end,
+			set = function(info, value) db.profile.instanceEnable[instance] = value end,
+		}
 		options.args.instances.args[instance] = {
 			type = 'input',
-			name = instance,
+			name = '',
+			order = 4 * i + 1,
+			width = 'half',
 			get = function(info) return db.profile.instances[info[#info]] end,
 			set = function(info, value) db.profile.instances[info[#info]] = value end,
 		}
+		options.args.instances.args[instance .. 'Remove'] = {
+			type = 'execute',
+			name = 'Remove',
+			order = 4 * i + 2,
+			width = 'half',
+			confirm = true,
+			func = function() db.profile.instances[instance] = nil end,
+		}
+		options.args.instances.args[instance .. 'Spacer'] = {
+			type = 'description',
+			name = '',
+			order = 4 * i + 3,
+		}
+		i = i + 1
 	end
 	
 	-- Add options to Interface Panel
