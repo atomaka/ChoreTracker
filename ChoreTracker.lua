@@ -19,29 +19,42 @@ local options = {
 	name = 'ChoreTracker',
 	type = 'group',
 	args = {
-		minimap = {
-			name = 'Hide Minimap Icon',
-			desc = 'Removes the icon from your minimap.',
-			type = 'toggle',
-			get = function(info) return db.profile.minimap.hide end,
-			set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
+		general = {
+			name = 'Settings',
+			type = 'group',
+			order = 1,
+			args = {
+				minimap = {
+					name = 'Hide Minimap Icon',
+					desc = 'Removes the icon from your minimap.',
+					type = 'toggle',
+					get = function(info) return db.profile.minimap.hide end,
+					set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
+				},
+				sortType = {
+					name = 'Sort Field',
+					desc = 'Field to sort the tooltip by.',
+					type = 'select',
+					values = { 'Character', 'Valor Points', 'Class' },
+					get = function(info) return db.profile.sortType end,
+					set = function(info, value) db.profile.sortType = value end,
+				},
+				sortingDirection = {
+					name = 'Sorting Direction',
+					desc = 'Which direction to sort.',
+					type = 'select',
+					values = { 'Ascending', 'Descending' },
+					get = function(info) return db.profile.sortDirection end,
+					set = function(info, value) db.profile.sortDirection = value end,
+				},
+			},
 		},
-		sortType = {
-			name = 'Sort Field',
-			desc = 'Field to sort the tooltip by.',
-			type = 'select',
-			values = { 'Character', 'Valor Points', 'Class' },
-			get = function(info) return db.profile.sortType end,
-			set = function(info, value) db.profile.sortType = value end,
-		},
-		sortingDirection = {
-			name = 'Sorting Direction',
-			desc = 'Which direction to sort.',
-			type = 'select',
-			values = { 'Ascending', 'Descending' },
-			get = function(info) return db.profile.sortDirection end,
-			set = function(info, value) db.profile.sortDirection = value end,
-		},
+		instances = {
+			name = 'Instances',
+			type = 'group',
+			order = 2,
+			args = { },
+		}
 	},
 }
 
