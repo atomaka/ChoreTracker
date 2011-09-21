@@ -66,7 +66,7 @@ local options = {
 			args = { 
 				instance = {
 					name = 'Add instance to track.',
-					desc = 'Etner an instance on a seven day lockout that you would like ChoreTracker to track.',
+					desc = 'Enter an instance on a seven day lockout that you would like ChoreTracker to track.',
 					type = 'input',
 					set = function(info, value) db.profile.instances[value] = '' end,
 				},
@@ -169,8 +169,8 @@ function core:OnEnable()
 		options.args.instances.args[instance] = {
 			type = 'input',
 			name = instance,
-			get = function(info) return db.profile.instances[info] end,
-			set = function(info, value) db.profile.instances[info] = value end,
+			get = function(info) return db.profile.instances[info[#info]] end,
+			set = function(info, value) db.profile.instances[info[#info]] = value end,
 		}
 	end
 	
