@@ -1,7 +1,11 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
 local LQT, LDB, LDBIcon, LBZ
-local db, tooltip, zones, trackedInstances, vpResetTime
+local db, tooltip, Z, vpResetTime
+
+-- Get localized instances
+LBZ = LibStub('LibBabble-Zone-3.0')
+Z = LBZ:GetLookupTable()
 
 local defaults = {
 	global = {},
@@ -11,7 +15,13 @@ local defaults = {
 		},
 		sortType = 1,
 		sortDirection = 1,
-		instances = {},
+		instances = {
+			[Z['Baradin Hold']] = 'BH',
+			[Z['Firelands']] = 'FL',
+			[Z['The Bastion of Twilight']] = 'BoT',
+			[Z['Blackwing Descent']] = 'BWD',
+			[Z['Throne of the Four Winds']] = '4W',			
+		},
 	},
 }
 
@@ -53,7 +63,14 @@ local options = {
 			name = 'Instances',
 			type = 'group',
 			order = 2,
-			args = { },
+			args = { 
+				instance = {
+					name = 'Add instance to track.',
+					desc = 'Etner an instance on a seven day lockout that you would like ChoreTracker to track.',
+					type = 'input',
+					set = function(info, value) db.profile.instances[value] = '' end,
+				},
+			},
 		}
 	},
 }
@@ -92,7 +109,6 @@ end
 
 function core:OnEnable()
 	LQT = LibStub('LibQTip-1.0')
-	LBZ = LibStub('LibBabble-Zone-3.0')
 
 	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
 	for class,color in pairs(RAID_CLASS_COLORS) do
@@ -148,22 +164,21 @@ function core:OnEnable()
 		LDBIcon:Show('ChoreTracker')
 	end
 	
-	-- Get instances
-	zones = LBZ:GetLookupTable()
-	
-	-- Move to a profile variable populated by instances added by user
-	trackedInstances = {
-		[zones['Baradin Hold']] = 'BH',
-		[zones['Firelands']] = 'FL',
-		[zones['The Bastion of Twilight']] = 'BoT',
-		[zones['Blackwing Descent']] = 'BWD',
-		[zones['Throne of the Four Winds']] = '4W',
-	}
+	-- Setup instance stuff for options
+	for instance, abbreviation in pairs(db.profile.instances) do
+		options.args.instances.args[instance] = {
+			type = 'input',
+			name = instance,
+			get = function(info) return db.profile.instances[info] end,
+			set = function(info, value) db.profile.instances[info] = value end,
+		}
+	end
 	
 	-- Add options to Interface Panel
 	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
 	local ACD = LibStub('AceConfigDialog-3.0')
 	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+	options.args.profile = LibStub('AceDBOptions-3.0'):GetOptionsTable(db)
 	
 	-- Register events
 	local level = UnitLevel('player')
@@ -219,13 +234,10 @@ function core:UpdateChores()
 
 	-- Store Saved Instances; sometimes, there can be two lockouts to the same instance
 	local savedInstances = GetNumSavedInstances()
-	
-	
-	
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
 		
-		if trackedInstances[instanceName] ~= nil then
+		if db.profile.instances[instanceName] ~= nil then
 			if instanceReset > 0 then
 				db.global[realm][name].lockouts[instanceName] = {}
 				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
@@ -288,7 +300,7 @@ function core:GetNextVPReset()
 
 			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
 
-			if title == zones['Baradin Hold'] then
+			if title == Z['Baradin Hold'] then
 				resetDate = { year = year, month = month + monthOffset, day = day }
 			end
 		end
@@ -321,7 +333,7 @@ function core:DrawTooltip()
 	core:UpdateChores()
 
 	local columnCount = 2
-	for instance,abbreviation in pairs(trackedInstances) do
+	for instance,abbreviation in pairs(db.profile.instances) do
 		columnCount = columnCount + 1
 	end
 	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
@@ -338,7 +350,7 @@ function core:DrawTooltip()
 			end
 			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints }
 			
-			for instance in pairs(trackedInstances) do
+			for instance in pairs(db.profile.instances) do
 				local defeatedBosses
 				if db.global[realm][name].lockouts[instance] ~= nil then
 					defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
@@ -382,7 +394,7 @@ function core:DrawTooltip()
 	tooltip:SetCell(1, 1, '')
 	tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
-	for instance,abbreviation in pairs(trackedInstances) do
+	for instance,abbreviation in pairs(db.profile.instances) do
 		tooltip:SetCell(1, nextColumn, abbreviation, nil, 'CENTER')
 		nextColumn = nextColumn + 1
 	end
@@ -400,7 +412,7 @@ function core:DrawTooltip()
 		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
 		
 		local nextColumn = 3
-		for instance, abbreviation in pairs(trackedInstances) do
+		for instance, abbreviation in pairs(db.profile.instances) do
 			local instanceColor
 			if information[instance] == 0 then
 				instanceColor = flagColors['green']
