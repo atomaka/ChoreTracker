@@ -17,20 +17,12 @@ local defaults = {
 		sortDirection = 1,
 		-- Change table? ['Baradin Hold'] = { abbreviation = 'BH', enable = true }
 		instances = {
-			[Z['Baradin Hold']] = 'BH',
-			[Z['Firelands']] = 'FL',
-			[Z['The Bastion of Twilight']] = 'BoT',
-			[Z['Blackwing Descent']] = 'BWD',
-			[Z['Throne of the Four Winds']] = '4W',			
+			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true }, 
+			[Z['Firelands']] = { abbreviation = 'FL', enable = true }, 
+			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = true }, 
+			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = true }, 
+			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true }, 		
 		},
-		instanceEnable = {
-			[Z['Baradin Hold']] = true,
-			[Z['Firelands']] = true,
-			[Z['The Bastion of Twilight']] = true,
-			[Z['Blackwing Descent']] = true,
-			[Z['Throne of the Four Winds']] = true,			
-		},
-		instanceRemoves = { }
 	},
 }
 
@@ -80,7 +72,8 @@ local options = {
 					order = 1,
 					set = function(info, value) 
 						if core:VerifyInstance(value) then 
-							db.profile.instances[value] = ''
+							db.profile.instances[value].abbreviation = ''
+							db.profile.instances[value].enable = true
 						else 
 							print('invalid instance') 
 						end
@@ -192,16 +185,16 @@ function core:OnEnable()
 			type = 'toggle',
 			name = instance,
 			order = 4 * i,
-			get = function(info) return db.profile.instanceEnable[instance] end,
-			set = function(info, value) db.profile.instanceEnable[instance] = value end,
+			get = function(info) return db.profile.instances[instance].enable end,
+			set = function(info, value) db.profile.instances[instance].enable = value end,
 		}
 		options.args.instances.args[instance] = {
 			type = 'input',
 			name = '',
 			order = 4 * i + 1,
 			width = 'half',
-			get = function(info) return db.profile.instances[info[#info]] end,
-			set = function(info, value) db.profile.instances[info[#info]] = value end,
+			get = function(info) return db.profile.instances[info[#info]].abbreviation end,
+			set = function(info, value) db.profile.instances[info[#info]].abbreviation = value end,
 		}
 		options.args.instances.args[instance .. 'Remove'] = {
 			type = 'execute',
@@ -417,7 +410,7 @@ function core:DrawTooltip()
 	core:UpdateChores()
 
 	local columnCount = 2
-	for instance,abbreviation in pairs(db.profile.instances) do
+	for instance in pairs(db.profile.instances) do
 		columnCount = columnCount + 1
 	end
 	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
@@ -478,9 +471,11 @@ function core:DrawTooltip()
 	tooltip:SetCell(1, 1, '')
 	tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
-	for instance,abbreviation in pairs(db.profile.instances) do
-		tooltip:SetCell(1, nextColumn, abbreviation, nil, 'CENTER')
-		nextColumn = nextColumn + 1
+	for instance,instanceInfo in pairs(db.profile.instances) do
+		if db.profile.instances[instance].enable == true then
+			tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
+			nextColumn = nextColumn + 1
+		end
 	end
 	
 	for _,information in pairs(tooltipTable) do
@@ -497,15 +492,17 @@ function core:DrawTooltip()
 		
 		local nextColumn = 3
 		for instance, abbreviation in pairs(db.profile.instances) do
-			local instanceColor
-			if information[instance] == 0 then
-				instanceColor = flagColors['green']
-			else
-				instanceColor = flagColors['red']
+			if db.profile.instances[instance].enable == true then
+				local instanceColor
+				if information[instance] == 0 then
+					instanceColor = flagColors['green']
+				else
+					instanceColor = flagColors['red']
+				end
+				tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
+				
+				nextColumn = nextColumn + 1
 			end
-			tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
-			
-			nextColumn = nextColumn + 1
 		end
 	end
 end
