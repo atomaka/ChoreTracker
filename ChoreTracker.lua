@@ -15,6 +15,7 @@ local defaults = {
 		},
 		sortType = 1,
 		sortDirection = 1,
+		-- Change table? ['Baradin Hold'] = { abbreviation = 'BH', enable = true }
 		instances = {
 			[Z['Baradin Hold']] = 'BH',
 			[Z['Firelands']] = 'FL',
@@ -77,7 +78,13 @@ local options = {
 					desc = 'Enter an instance on a seven day lockout that you would like ChoreTracker to track.',
 					type = 'input',
 					order = 1,
-					set = function(info, value) db.profile.instances[value] = '' end,
+					set = function(info, value) 
+						if core:VerifyInstance(value) then 
+							db.profile.instances[value] = ''
+						else 
+							print('invalid instance') 
+						end
+					end,
 				},
 				barHeader = {
 					name = 'Instances',
@@ -364,6 +371,45 @@ function core:GetNextVPReset()
 	else
 		vpResetTime = nil
 	end
+end
+
+function core:VerifyInstance(instance)
+	-- User a method similar to GetNextVPReset() to make sure the instance
+	-- has a lockout on the calendar
+	local currentCalendarSetting = GetCVar('calendarShowResets')
+	SetCVar('calendarShowResets', 1)
+	
+	local _, month, day, year = CalendarGetDate()
+	
+	local monthOffset = 0
+	local resetDate = nil
+	while resetDate == nil do
+		local todaysEvents = CalendarGetNumDayEvents(monthOffset, day)
+
+		for i = 1,todaysEvents do
+			if todaysEvents == 0 then 
+				break 
+			end
+
+			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
+
+			if title == instance then
+				return true
+			end
+		end
+		
+		day = day + 1
+		if day > 31 then
+			if monthOffset == 1 then break end
+			day = 1
+			monthOffset = 1
+		end
+	end
+	
+	-- Reset the calendar to the original settings
+	SetCVar('calendarShowResets', currentCalendarSetting)
+	
+	return false
 end
 
 function core:DrawTooltip()
