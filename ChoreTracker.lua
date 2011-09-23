@@ -20,6 +20,7 @@ local defaults = {
 		sortDirection = 1,
 		vertSortDirection = 1,
 		vpPos = 1,
+		currentOnTop = false,
 		instances = {
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
 			[Z['Firelands']] = { abbreviation = 'FL', enable = true, removed = false, }, 
@@ -52,11 +53,25 @@ local options = {
 					type = 'header',
 					order = 2,
 				},
+				currentOnTop = {
+					name = L['Current Character On Top'],
+					desc = L['Place the character you are currently logged in as on the top of the list.'],
+					type = 'toggle',
+					width = 'full',
+					order = 3,
+					get = function(info) return db.profile.currentOnTop end,
+					set = function(info, value) db.profile.currentOnTop = value end,
+				},
+				--sortSpacer = {
+				--	type = 'description',
+				--	name = '',
+				--	order = 4,
+				--},
 				sortType = {
 					name = L['Sort Field'],
 					desc = L['Field to sort the tooltip by.'],
 					type = 'select',
-					order = 3,
+					order = 5,
 					values = { L['Character'], L['Valor Points'], L['Class'] },
 					get = function(info) return db.profile.sortType end,
 					set = function(info, value) db.profile.sortType = value end,
@@ -65,7 +80,7 @@ local options = {
 					name = L['Sorting Direction'],
 					desc = L['Which direction to sort.'],
 					type = 'select',
-					order = 4,
+					order = 6,
 					values = { L['Ascending'], L['Descending'] },
 					get = function(info) return db.profile.sortDirection end,
 					set = function(info, value) db.profile.sortDirection = value end,
@@ -172,6 +187,8 @@ function core:OnEnable()
 				else
 					LibStub('AceConfigDialog-3.0'):Open('ChoreTracker')
 				end
+				
+				-- Implement right click to change sorting?
 		end,
 		OnEnter = function(self)
 			core:DrawTooltip()
@@ -473,6 +490,7 @@ function core:DrawTooltip()
 
 	-- Populate a table with the information we want for our tooltip
 	local tooltipTable = {}
+	local currentTable = {}
 	for realm in pairs(db.global) do
 		for name in pairs(db.global[realm]) do
 			local valorPoints = db.global[realm][name].valorPoints.points
@@ -492,8 +510,12 @@ function core:DrawTooltip()
 				end
 				characterTable[instance] = defeatedBosses
 			end
-			
-			table.insert(tooltipTable,characterTable)
+
+			if name == UnitName('player') and db.profile.currentOnTop == true then
+				currentTable = characterTable
+			else
+				table.insert(tooltipTable, characterTable)
+			end
 		end
 	end
 	
@@ -518,6 +540,11 @@ function core:DrawTooltip()
 		end
 	end
 	table.sort(tooltipTable, sortTooltip )
+	
+	-- Toss the current character on top if it is set that way
+	if db.profile.currentOnTop == true then
+		table.insert(tooltipTable, 1, currentTable)
+	end
 	
 	-- Create a table for the header; vpPos to decide where to place Valor Points column
 	-- Draw tooltip table then looped through.
