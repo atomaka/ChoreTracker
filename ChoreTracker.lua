@@ -249,7 +249,7 @@ function core:DrawInstanceOptions()
 				if core:VerifyInstance(value) then 
 					print('Adding',value)
 					db.profile.instances[value] = { }
-					db.profile.instances[value].abbreviation = ''
+					db.profile.instances[value].abbreviation = string.sub(value,0,1)
 					db.profile.instances[value].enable = true
 					db.profile.instances[value].removed = false
 					core:DrawInstanceOptions()
