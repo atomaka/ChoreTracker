@@ -78,7 +78,7 @@ local options = {
 					desc = 'Decides the positioning of the Valor Point column.',
 					type = 'select',
 					order = 6,
-					values = { 'Start', 'End', 'Sorted' },
+					values = { 'Start', 'End' },
 					get = function(info) return db.profile.vpPos end,
 					set = function(info, value) db.profile.vpPos = value end,
 				},
@@ -98,29 +98,7 @@ local options = {
 			type = 'group',
 			order = 2,
 			args = { 
-				instance = {
-					name = 'Add instance to track.',
-					desc = 'Enter an instance on a lockout that you would like ChoreTracker to track.',
-					type = 'input',
-					order = 1,
-					set = function(info, value) 
-						if core:VerifyInstance(value) then 
-							print('Adding',value)
-							db.profile.instances[value] = { }
-							db.profile.instances[value].abbreviation = ''
-							db.profile.instances[value].enable = true
-							db.profile.instances[value].removed = false
-							core:DrawInstanceOptions()
-						else 
-							print('Invalid instance') 
-						end
-					end,
-				},
-				instancesHeader = {
-					name = 'Instances',
-					type = 'header',
-					order = 2,
-				},
+				
 			},
 		}
 	},
@@ -261,6 +239,31 @@ end
 
 --[[		FUNCTIONS		]]--
 function core:DrawInstanceOptions()
+	options.args.instances.args = { 
+		instance = {
+			name = 'Add instance to track.',
+			desc = 'Enter an instance on a lockout that you would like ChoreTracker to track.',
+			type = 'input',
+			order = 1,
+			set = function(info, value) 
+				if core:VerifyInstance(value) then 
+					print('Adding',value)
+					db.profile.instances[value] = { }
+					db.profile.instances[value].abbreviation = ''
+					db.profile.instances[value].enable = true
+					db.profile.instances[value].removed = false
+					core:DrawInstanceOptions()
+				else 
+					print('Invalid instance') 
+				end
+			end,
+		},
+		instancesHeader = {
+			name = 'Instances',
+			type = 'header',
+			order = 2,
+		},
+	}
 	local i = 1
 	for instance, abbreviation in pairs(db.profile.instances) do
 		if db.profile.instances[instance].removed == false then
@@ -460,7 +463,9 @@ function core:DrawTooltip()
 
 	local columnCount = 2
 	for instance in pairs(db.profile.instances) do
-		columnCount = columnCount + 1
+		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
+			columnCount = columnCount + 1
+		end
 	end
 	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
 
@@ -521,12 +526,20 @@ function core:DrawTooltip()
 	local valorPointColumn = tooltip:AddColumn('LEFT')
 	tooltip:SetCell(1, 1, '')
 	tooltip:SetCell(1, 2, 'VP')
-	local nextColumn = 3
-	for instance,instanceInfo in pairs(db.profile.instances) do
+	
+	-- Build and sort our headers
+	local headerTable = { }
+	--headerTable['Valor Points'] = { abbreviation = 'VP', enable = true, removed = false, }
+	for instance, instanceInfo in pairs(db.profile.instances) do
 		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
-			tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
-			nextColumn = nextColumn + 1
+			table.insert(headerTable,instanceInfo)
 		end
+	end
+	
+	local nextColumn = 3
+	for instance,instanceInfo in pairs(headerTable) do
+		tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
+		nextColumn = nextColumn + 1
 	end
 	
 	for _,information in pairs(tooltipTable) do
