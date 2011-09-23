@@ -19,11 +19,11 @@ local defaults = {
 		vpPos = 1,
 		-- Change table? ['Baradin Hold'] = { abbreviation = 'BH', enable = true }
 		instances = {
-			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true }, 
-			[Z['Firelands']] = { abbreviation = 'FL', enable = true }, 
-			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = true }, 
-			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = true }, 
-			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true }, 
+			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
+			[Z['Firelands']] = { abbreviation = 'FL', enable = true, removed = false, }, 
+			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = true, removed = false, }, 
+			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = true, removed = false, }, 
+			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true, removed = false, }, 
 		},
 	},
 }
@@ -106,8 +106,11 @@ local options = {
 					set = function(info, value) 
 						if core:VerifyInstance(value) then 
 							print('Adding',value)
+							db.profile.instances[value] = { }
 							db.profile.instances[value].abbreviation = ''
 							db.profile.instances[value].enable = true
+							db.profile.instances[value].removed = false
+							core:DrawInstanceOptions()
 						else 
 							print('Invalid instance') 
 						end
@@ -213,38 +216,7 @@ function core:OnEnable()
 	end
 	
 	-- Setup instance stuff for options
-	local i = 1
-	for instance, abbreviation in pairs(db.profile.instances) do
-		options.args.instances.args[instance .. 'Enable'] = {
-			type = 'toggle',
-			name = instance,
-			order = 4 * i,
-			get = function(info) return db.profile.instances[instance].enable end,
-			set = function(info, value) db.profile.instances[instance].enable = value end,
-		}
-		options.args.instances.args[instance] = {
-			type = 'input',
-			name = '',
-			order = 4 * i + 1,
-			width = 'half',
-			get = function(info) return db.profile.instances[instance].abbreviation end,
-			set = function(info, value) db.profile.instances[instance].abbreviation = value end,
-		}
-		options.args.instances.args[instance .. 'Remove'] = {
-			type = 'execute',
-			name = 'Remove',
-			order = 4 * i + 2,
-			width = 'half',
-			confirm = true,
-			func = function(info) db.profile.instances[instance] = nil end,
-		}
-		options.args.instances.args[instance .. 'Spacer'] = {
-			type = 'description',
-			name = '',
-			order = 4 * i + 3,
-		}
-		i = i + 1
-	end
+	core:DrawInstanceOptions()
 	
 	-- Add options to Interface Panel
 	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
@@ -288,6 +260,49 @@ end
 
 
 --[[		FUNCTIONS		]]--
+function core:DrawInstanceOptions()
+	local i = 1
+	for instance, abbreviation in pairs(db.profile.instances) do
+		if db.profile.instances[instance].removed == false then
+			options.args.instances.args[instance .. 'Enable'] = {
+				type = 'toggle',
+				name = instance,
+				order = 4 * i,
+				get = function(info) return db.profile.instances[instance].enable end,
+				set = function(info, value) 
+					db.profile.instances[instance].enable = value
+					core:DrawInstanceOptions()
+				end,
+			}
+			options.args.instances.args[instance] = {
+				type = 'input',
+				name = '',
+				order = 4 * i + 1,
+				width = 'half',
+				get = function(info) return db.profile.instances[instance].abbreviation end,
+				set = function(info, value) db.profile.instances[instance].abbreviation = value end,
+			}
+			options.args.instances.args[instance .. 'Remove'] = {
+				type = 'execute',
+				name = 'Remove',
+				order = 4 * i + 2,
+				width = 'half',
+				confirm = true,
+				func = function() 
+					db.profile.instances[instance].removed = true 
+					core:DrawInstanceOptions()
+				end,
+			}
+			options.args.instances.args[instance .. 'Spacer'] = {
+				type = 'description',
+				name = '',
+				order = 4 * i + 3,
+			}
+			i = i + 1
+		end
+	end
+end
+
 function core:UpdateChores()
 	-- Reset data if necessary
 	core:ResetInstances()
@@ -508,7 +523,7 @@ function core:DrawTooltip()
 	tooltip:SetCell(1, 2, 'VP')
 	local nextColumn = 3
 	for instance,instanceInfo in pairs(db.profile.instances) do
-		if db.profile.instances[instance].enable == true then
+		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
 			tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
 			nextColumn = nextColumn + 1
 		end
@@ -528,7 +543,7 @@ function core:DrawTooltip()
 		
 		local nextColumn = 3
 		for instance, abbreviation in pairs(db.profile.instances) do
-			if db.profile.instances[instance].enable == true then
+			if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
 				local instanceColor
 				if information[instance] == 0 then
 					instanceColor = flagColors['green']
