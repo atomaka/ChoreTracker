@@ -62,11 +62,6 @@ local options = {
 					get = function(info) return db.profile.currentOnTop end,
 					set = function(info, value) db.profile.currentOnTop = value end,
 				},
-				--sortSpacer = {
-				--	type = 'description',
-				--	name = '',
-				--	order = 4,
-				--},
 				sortType = {
 					name = L['Sort Field'],
 					desc = L['Field to sort the tooltip by.'],
@@ -181,14 +176,26 @@ function core:OnEnable()
 		type = 'data source',
 		text = 'ChoreTracker',
 		icon = 'Interface\\AddOns\\ChoreTracker\\icon',
-		OnClick = function() 
+		OnClick = function(self, button)
+			if button == 'RightButton' then
 				if LibStub("AceConfigDialog-3.0").OpenFrames['ChoreTracker'] then
 					LibStub('AceConfigDialog-3.0'):Close('ChoreTracker')
 				else
 					LibStub('AceConfigDialog-3.0'):Open('ChoreTracker')
 				end
-				
-				-- Implement right click to change sorting?
+			else
+				-- Cycle through our sort options
+				if db.profile.sortType == 1 then
+					db.profile.sortType = 2
+					core:DrawTooltip()
+				elseif db.profile.sortType == 2 then
+					db.profile.sortType = 3
+					core:DrawTooltip()
+				else
+					db.profile.sortType = 1
+					core:DrawTooltip()
+				end
+			end	
 		end,
 		OnEnter = function(self)
 			core:DrawTooltip()
@@ -479,7 +486,11 @@ end
 function core:DrawTooltip()
 	-- UpdateChores before we show the tooltip to make sure we have the most recent data
 	core:UpdateChores()
-
+	
+	if tooltip then
+		tooltip:Clear()
+		tooltip = nil 
+	end
 	local columnCount = 2
 	for instance in pairs(db.profile.instances) do
 		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
