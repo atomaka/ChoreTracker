@@ -3,6 +3,9 @@ local core = ChoreTracker
 local LQT, LDB, LDBIcon, LBZ
 local db, tooltip, Z, vpResetTime
 
+-- Localization
+local L = LibStub('AceLocale-3.0'):GetLocale('ChoreTracker')
+
 -- Get localized instances
 LBZ = LibStub('LibBabble-Zone-3.0')
 Z = LBZ:GetLookupTable()
@@ -17,7 +20,6 @@ local defaults = {
 		sortDirection = 1,
 		vertSortDirection = 1,
 		vpPos = 1,
-		-- Change table? ['Baradin Hold'] = { abbreviation = 'BH', enable = true }
 		instances = {
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
 			[Z['Firelands']] = { abbreviation = 'FL', enable = true, removed = false, }, 
@@ -33,42 +35,42 @@ local options = {
 	type = 'group',
 	args = {
 		general = {
-			name = 'Settings',
+			name = L['Settings'],
 			type = 'group',
 			order = 1,
 			args = {
 				minimap = {
-					name = 'Hide Minimap Icon',
-					desc = 'Removes the icon from your minimap.',
+					name = L['Hide Minimap Icon'],
+					desc = L['Removes the icon from your minimap.'],
 					type = 'toggle',
 					order = 1,
 					get = function(info) return db.profile.minimap.hide end,
 					set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
 				},
 				verticalHeader = {
-					name = 'Vertical Sorting',
+					name = L['Vertical Sorting'],
 					type = 'header',
 					order = 2,
 				},
 				sortType = {
-					name = 'Sort Field',
-					desc = 'Field to sort the tooltip by.',
+					name = L['Sort Field'],
+					desc = L['Field to sort the tooltip by.'],
 					type = 'select',
 					order = 3,
-					values = { 'Character', 'Valor Points', 'Class' },
+					values = { L['Character'], L['Valor Points'], L['Class'] },
 					get = function(info) return db.profile.sortType end,
 					set = function(info, value) db.profile.sortType = value end,
 				},
 				sortingDirection = {
-					name = 'Sorting Direction',
-					desc = 'Which direction to sort.',
+					name = L['Sorting Direction'],
+					desc = L['Which direction to sort.'],
 					type = 'select',
 					order = 4,
-					values = { 'Ascending', 'Descending' },
+					values = { L['Ascending'], L['Descending'] },
 					get = function(info) return db.profile.sortDirection end,
 					set = function(info, value) db.profile.sortDirection = value end,
 				},
-				horizontalHeader = {
+				--[[horizontalHeader = {
 					name = 'Horizontal Sorting',
 					type = 'header',
 					order = 5,
@@ -90,11 +92,11 @@ local options = {
 					values = { 'Ascending', 'Descending' },
 					get = function(info) return db.profile.vertSortDirection end,
 					set = function(info, value) db.profile.vertSortDirection = value end,
-				},
+				},]]--
 			},
 		},
 		instances = {
-			name = 'Instances',
+			name = L['Instances'],
 			type = 'group',
 			order = 2,
 			args = { 
@@ -241,8 +243,8 @@ end
 function core:DrawInstanceOptions()
 	options.args.instances.args = { 
 		instance = {
-			name = 'Add instance to track.',
-			desc = 'Enter an instance on a lockout that you would like ChoreTracker to track.',
+			name = L['Add instance to track.'],
+			desc = L['Enter an instance on a lockout that you would like ChoreTracker to track.'],
 			type = 'input',
 			order = 1,
 			set = function(info, value) 
@@ -259,7 +261,7 @@ function core:DrawInstanceOptions()
 			end,
 		},
 		instancesHeader = {
-			name = 'Instances',
+			name = L['Instances'],
 			type = 'header',
 			order = 2,
 		},
@@ -287,7 +289,7 @@ function core:DrawInstanceOptions()
 			}
 			options.args.instances.args[instance .. 'Remove'] = {
 				type = 'execute',
-				name = 'Remove',
+				name = L['Remove'],
 				order = 4 * i + 2,
 				width = 'half',
 				confirm = true,
