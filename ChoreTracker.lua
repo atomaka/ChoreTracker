@@ -15,13 +15,15 @@ local defaults = {
 		},
 		sortType = 1,
 		sortDirection = 1,
+		vertSortDirection = 1,
+		vpPos = 1,
 		-- Change table? ['Baradin Hold'] = { abbreviation = 'BH', enable = true }
 		instances = {
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true }, 
 			[Z['Firelands']] = { abbreviation = 'FL', enable = true }, 
 			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = true }, 
 			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = true }, 
-			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true }, 		
+			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true }, 
 		},
 	},
 }
@@ -39,13 +41,20 @@ local options = {
 					name = 'Hide Minimap Icon',
 					desc = 'Removes the icon from your minimap.',
 					type = 'toggle',
+					order = 1,
 					get = function(info) return db.profile.minimap.hide end,
 					set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
+				},
+				verticalHeader = {
+					name = 'Vertical Sorting',
+					type = 'header',
+					order = 2,
 				},
 				sortType = {
 					name = 'Sort Field',
 					desc = 'Field to sort the tooltip by.',
 					type = 'select',
+					order = 3,
 					values = { 'Character', 'Valor Points', 'Class' },
 					get = function(info) return db.profile.sortType end,
 					set = function(info, value) db.profile.sortType = value end,
@@ -54,9 +63,33 @@ local options = {
 					name = 'Sorting Direction',
 					desc = 'Which direction to sort.',
 					type = 'select',
+					order = 4,
 					values = { 'Ascending', 'Descending' },
 					get = function(info) return db.profile.sortDirection end,
 					set = function(info, value) db.profile.sortDirection = value end,
+				},
+				horizontalHeader = {
+					name = 'Horizontal Sorting',
+					type = 'header',
+					order = 5,
+				},
+				vpPos = {
+					name = 'Valor Point Position',
+					desc = 'Decides the positioning of the Valor Point column.',
+					type = 'select',
+					order = 6,
+					values = { 'Start', 'End', 'Sorted' },
+					get = function(info) return db.profile.vpPos end,
+					set = function(info, value) db.profile.vpPos = value end,
+				},
+				vertSortingDirection = {
+					name = 'Sorting Direction',
+					desc = 'Which direction to sort.',
+					type = 'select',
+					order = 7,
+					values = { 'Ascending', 'Descending' },
+					get = function(info) return db.profile.vertSortDirection end,
+					set = function(info, value) db.profile.vertSortDirection = value end,
 				},
 			},
 		},
@@ -67,19 +100,20 @@ local options = {
 			args = { 
 				instance = {
 					name = 'Add instance to track.',
-					desc = 'Enter an instance on a seven day lockout that you would like ChoreTracker to track.',
+					desc = 'Enter an instance on a lockout that you would like ChoreTracker to track.',
 					type = 'input',
 					order = 1,
 					set = function(info, value) 
 						if core:VerifyInstance(value) then 
+							print('Adding',value)
 							db.profile.instances[value].abbreviation = ''
 							db.profile.instances[value].enable = true
 						else 
-							print('invalid instance') 
+							print('Invalid instance') 
 						end
 					end,
 				},
-				barHeader = {
+				instancesHeader = {
 					name = 'Instances',
 					type = 'header',
 					order = 2,
@@ -193,8 +227,8 @@ function core:OnEnable()
 			name = '',
 			order = 4 * i + 1,
 			width = 'half',
-			get = function(info) return db.profile.instances[info[#info]].abbreviation end,
-			set = function(info, value) db.profile.instances[info[#info]].abbreviation = value end,
+			get = function(info) return db.profile.instances[instance].abbreviation end,
+			set = function(info, value) db.profile.instances[instance].abbreviation = value end,
 		}
 		options.args.instances.args[instance .. 'Remove'] = {
 			type = 'execute',
@@ -202,7 +236,7 @@ function core:OnEnable()
 			order = 4 * i + 2,
 			width = 'half',
 			confirm = true,
-			func = function() db.profile.instances[instance] = nil end,
+			func = function(info) db.profile.instances[instance] = nil end,
 		}
 		options.args.instances.args[instance .. 'Spacer'] = {
 			type = 'description',
@@ -463,6 +497,8 @@ function core:DrawTooltip()
 	end
 	table.sort(tooltipTable, sortTooltip )
 	
+	-- Create a table for the header; vpPos to decide where to place Valor Points column
+	-- Draw tooltip table then looped through.
 	
 	-- Draw the tooltip
 	tooltip:AddHeader('')
