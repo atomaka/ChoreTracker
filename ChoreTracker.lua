@@ -488,6 +488,7 @@ function core:DrawTooltip()
 	core:UpdateChores()
 	
 	if tooltip then
+		tooltip:ClearAllPoints()
 		tooltip:Clear()
 		tooltip = nil 
 	end
