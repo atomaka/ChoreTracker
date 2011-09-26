@@ -1,14 +1,15 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
 local LQT, LDB, LDBIcon, LBZ
-local db, tooltip, Z, vpResetTime
+local db, tooltip, vpResetTime
+local fontObjects = { }
 
 -- Localization
 local L = LibStub('AceLocale-3.0'):GetLocale('ChoreTracker')
 
 -- Get localized instances
 LBZ = LibStub('LibBabble-Zone-3.0')
-Z = LBZ:GetLookupTable()
+local Z = LBZ:GetLookupTable()
 
 local defaults = {
 	global = {},
@@ -18,8 +19,6 @@ local defaults = {
 		},
 		sortType = 1,
 		sortDirection = 1,
-		vertSortDirection = 1,
-		vpPos = 1,
 		currentOnTop = false,
 		instances = {
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
@@ -80,44 +79,16 @@ local options = {
 					get = function(info) return db.profile.sortDirection end,
 					set = function(info, value) db.profile.sortDirection = value end,
 				},
-				--[[horizontalHeader = {
-					name = 'Horizontal Sorting',
-					type = 'header',
-					order = 5,
-				},
-				vpPos = {
-					name = 'Valor Point Position',
-					desc = 'Decides the positioning of the Valor Point column.',
-					type = 'select',
-					order = 6,
-					values = { 'Start', 'End' },
-					get = function(info) return db.profile.vpPos end,
-					set = function(info, value) db.profile.vpPos = value end,
-				},
-				vertSortingDirection = {
-					name = 'Sorting Direction',
-					desc = 'Which direction to sort.',
-					type = 'select',
-					order = 7,
-					values = { 'Ascending', 'Descending' },
-					get = function(info) return db.profile.vertSortDirection end,
-					set = function(info, value) db.profile.vertSortDirection = value end,
-				},]]--
 			},
 		},
 		instances = {
 			name = L['Instances'],
 			type = 'group',
 			order = 2,
-			args = { 
-				
-			},
+			args = { },
 		}
 	},
 }
-
-local classColors = {}
-local flagColors = {}
 
 function core:OnInitialize()
 	-- Prepare the database if necessary
@@ -158,18 +129,18 @@ function core:OnEnable()
 			class = 'death knight'
 		end
 		
-		classColors[class] = CreateFont('ClassFont' .. class)
-		classColors[class]:CopyFontObject(GameTooltipText)
-		classColors[class]:SetTextColor(color.r, color.g, color.b)
+		fontObjects[class] = CreateFont('ClassFont' .. class)
+		fontObjects[class]:CopyFontObject(GameTooltipText)
+		fontObjects[class]:SetTextColor(color.r, color.g, color.b)
 	end
 	
-	flagColors['green'] = CreateFont('FlagFontGreen')
-	flagColors['green']:CopyFontObject(GameTooltipText)
-	flagColors['green']:SetTextColor(0, 255, 0)
+	fontObjects['green'] = CreateFont('FlagFontGreen')
+	fontObjects['green']:CopyFontObject(GameTooltipText)
+	fontObjects['green']:SetTextColor(0, 255, 0)
 	
-	flagColors['red'] = CreateFont('FlagFontRed')
-	flagColors['red']:CopyFontObject(GameTooltipText)
-	flagColors['red']:SetTextColor(255, 0, 0)
+	fontObjects['red'] = CreateFont('FlagFontRed')
+	fontObjects['red']:CopyFontObject(GameTooltipText)
+	fontObjects['red']:SetTextColor(255, 0, 0)
 	
 	-- Setup LDB
 	LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
@@ -234,6 +205,8 @@ function core:OnEnable()
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO')
 		self:RegisterEvent('CHAT_MSG_CURRENCY')
+		-- Need another event to catch instance lockouts.  CHAT_MSG_CURRENCY will not fire if you
+		-- receive no currency (ie. are Valor Point capped).
 	end
 	
 	-- Get calendar events information
@@ -265,6 +238,7 @@ end
 
 --[[		FUNCTIONS		]]--
 function core:DrawInstanceOptions()
+	-- Redraw our instance options everytime they are updated.
 	options.args.instances.args = { 
 		instance = {
 			name = L['Add instance to track.'],
@@ -341,7 +315,7 @@ function core:UpdateChores()
 	local name = UnitName('player')
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 
-	-- Store Valor Points
+	-- Store Valor Points if we were able to establish a reset time.
 	if vpResetTime ~= nil then
 		db.global[realm][name].valorPoints = {}
 		db.global[realm][name].valorPoints.points = earnedThisWeek
@@ -445,7 +419,7 @@ function core:GetNextVPReset()
 end
 
 function core:VerifyInstance(instance)
-	-- User a method similar to GetNextVPReset() to make sure the instance
+	-- Use a method similar to GetNextVPReset() to make sure the instance
 	-- has a lockout on the calendar
 	local currentCalendarSetting = GetCVar('calendarShowResets')
 	SetCVar('calendarShowResets', 1)
@@ -585,13 +559,13 @@ function core:DrawTooltip()
 	
 	for _,information in pairs(tooltipTable) do
 		local characterLine = tooltip:AddLine('')
-		tooltip:SetCell(characterLine, 1, information.name, classColors[information.class], 'LEFT')
+		tooltip:SetCell(characterLine, 1, information.name, fontObjects[information.class], 'LEFT')
 		
 		local valorPointColor
 		if information.valorPoints == 980 then
-			valorPointColor = flagColors['red']
+			valorPointColor = fontObjects['red']
 		else
-			valorPointColor = flagColors['green']
+			valorPointColor = fontObjects['green']
 		end
 		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
 		
@@ -600,9 +574,9 @@ function core:DrawTooltip()
 			if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
 				local instanceColor
 				if information[instance] == 0 then
-					instanceColor = flagColors['green']
+					instanceColor = fontObjects['green']
 				else
-					instanceColor = flagColors['red']
+					instanceColor = fontObjects['red']
 				end
 				tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 				
