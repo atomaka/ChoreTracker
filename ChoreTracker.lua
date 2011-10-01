@@ -316,9 +316,14 @@ function core:UpdateChores()
 	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
 
 	-- Store Valor Points if we were able to establish a reset time.
-	if vpResetTime ~= nil then
+	-- Try to alleviate issues with vpResetTime not getting set
+	-- by updating vp regardless and assuming previous time is still
+	-- correct.
+	if db.global[realm][name].valorPoints == nil then
 		db.global[realm][name].valorPoints = {}
-		db.global[realm][name].valorPoints.points = earnedThisWeek
+	end
+	db.global[realm][name].valorPoints.points = earnedThisWeek
+	if vpResetTime ~= nil then
 		db.global[realm][name].valorPoints.resetTime = vpResetTime
 	end
 
@@ -413,7 +418,9 @@ function core:GetNextVPReset()
 		resetDate.sec = resetTime.sec
 
 		vpResetTime = time(resetDate)
+		print(vpResetTime)
 	else
+		print('No Time')
 		vpResetTime = nil
 	end
 end
