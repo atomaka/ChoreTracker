@@ -205,6 +205,7 @@ function core:OnEnable()
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO')
 		self:RegisterEvent('CHAT_MSG_CURRENCY')
+		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
 		-- Need another event to catch instance lockouts.  CHAT_MSG_CURRENCY will not fire if you
 		-- receive no currency (ie. are Valor Point capped).
 	end
@@ -229,8 +230,13 @@ function core:UPDATE_INSTANCE_INFO()
 	core:UpdateChores()
 end
 
+function core:LFG_UPDATE_RANDOM_INFO()
+	core:UpdateChores()
+end
+
 function core:CHAT_MSG_CURRENCY()
 	RequestRaidInfo()
+	RequestLFDPlayerLockInfo()
 end
 
 
