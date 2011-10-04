@@ -259,7 +259,6 @@ function core:DrawInstanceOptions()
 			order = 1,
 			set = function(info, value) 
 				if core:VerifyInstance(value) then 
-					print('Adding',value)
 					db.profile.instances[value] = { }
 					db.profile.instances[value].abbreviation = string.sub(value,0,1)
 					db.profile.instances[value].enable = true
@@ -430,9 +429,8 @@ function core:GetNextVPReset()
 		resetDate.sec = resetTime.sec
 
 		vpResetTime = time(resetDate)
-		print(vpResetTime)
 	else
-		print('No Time')
+		print('Error: Could not caculate the next VP Reset Time.')
 		vpResetTime = nil
 	end
 end
