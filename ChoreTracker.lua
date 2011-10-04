@@ -206,8 +206,8 @@ function core:OnEnable()
 		self:RegisterEvent('UPDATE_INSTANCE_INFO')
 		self:RegisterEvent('CHAT_MSG_CURRENCY')
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
-		-- Need another event to catch instance lockouts.  CHAT_MSG_CURRENCY will not fire if you
-		-- receive no currency (ie. are Valor Point capped).
+		-- Since CHAT_MSG_CURRENCY will not fire if you have max currency
+		self:RegisterEvent('INSTANCE_ENCOUNTER_ENGAGE_UNIT')
 	end
 	
 	-- Get calendar events information
@@ -235,6 +235,12 @@ function core:LFG_UPDATE_RANDOM_INFO()
 end
 
 function core:CHAT_MSG_CURRENCY()
+	RequestRaidInfo()
+	RequestLFDPlayerLockInfo()
+end
+
+-- Might only fire for encounters with a boss frame.
+function core:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 	RequestRaidInfo()
 	RequestLFDPlayerLockInfo()
 end
@@ -472,7 +478,10 @@ end
 
 function core:DrawTooltip()
 	-- UpdateChores before we show the tooltip to make sure we have the most recent data
-	core:UpdateChores()
+	local level = UnitLevel('player')
+	if level == 85 then
+		core:UpdateChores()
+	end
 	
 	if tooltip then
 		tooltip:ClearAllPoints()
