@@ -1,15 +1,12 @@
 ChoreTracker = LibStub('AceAddon-3.0'):NewAddon('ChoreTracker', 'AceConsole-3.0', 'AceEvent-3.0')
 local core = ChoreTracker
-local LQT, LDB, LDBIcon, LBZ
-local db, tooltip, vpResetTime
-local fontObjects = { }
+local LQT, LDB, LDBIcon
 
 -- Localization
 local L = LibStub('AceLocale-3.0'):GetLocale('ChoreTracker')
 
 -- Get localized instances
-LBZ = LibStub('LibBabble-Zone-3.0')
-local Z = LBZ:GetLookupTable()
+local Z = LibStub('LibBabble-Zone-3.0'):GetLookupTable()
 
 local defaults = {
 	global = {},
@@ -44,8 +41,8 @@ local options = {
 					desc = L['Removes the icon from your minimap.'],
 					type = 'toggle',
 					order = 1,
-					get = function(info) return db.profile.minimap.hide end,
-					set = function(info, value) db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
+					get = function(info) return core.db.profile.minimap.hide end,
+					set = function(info, value) core.db.profile.minimap.hide = value LDBIcon[value and 'Hide' or 'Show'](LDBIcon, 'ChoreTracker') end,
 				},
 				verticalHeader = {
 					name = L['Vertical Sorting'],
@@ -58,8 +55,8 @@ local options = {
 					type = 'toggle',
 					width = 'full',
 					order = 3,
-					get = function(info) return db.profile.currentOnTop end,
-					set = function(info, value) db.profile.currentOnTop = value end,
+					get = function(info) return core.db.profile.currentOnTop end,
+					set = function(info, value) core.db.profile.currentOnTop = value end,
 				},
 				sortType = {
 					name = L['Sort Field'],
@@ -67,8 +64,8 @@ local options = {
 					type = 'select',
 					order = 5,
 					values = { L['Character'], L['Valor Points'], L['Class'] },
-					get = function(info) return db.profile.sortType end,
-					set = function(info, value) db.profile.sortType = value end,
+					get = function(info) return core.db.profile.sortType end,
+					set = function(info, value) core.db.profile.sortType = value end,
 				},
 				sortingDirection = {
 					name = L['Sorting Direction'],
@@ -76,8 +73,8 @@ local options = {
 					type = 'select',
 					order = 6,
 					values = { L['Ascending'], L['Descending'] },
-					get = function(info) return db.profile.sortDirection end,
-					set = function(info, value) db.profile.sortDirection = value end,
+					get = function(info) return core.db.profile.sortDirection end,
+					set = function(info, value) core.db.profile.sortDirection = value end,
 				},
 			},
 		},
@@ -91,16 +88,16 @@ local options = {
 }
 
 function core:OnInitialize()
-	db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
+	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
 	local level = UnitLevel('player')
 	local realm = GetRealmName()
 	local name = UnitName('player')
-	if db.global[realm] == nil then
+	if self.db.global[realm] == nil then
 		db.global[realm] = {}
 	end
 	
-	if db.global[realm][name] == nil and level == 85 then
+	if self.db.global[realm][name] == nil and level == 85 then
 		db.global[realm][name] = {}
 		
 		local class = UnitClass('player')
@@ -111,7 +108,7 @@ function core:OnInitialize()
 		
 		db.global[realm][name].class = class
 		db.global[realm][name].valorPoints = {
-			valorPoints = 0,
+			points = 0,
 			resetTime = 0,
 		}
 		db.global[realm][name].lockouts = {}
@@ -120,26 +117,30 @@ end
 
 function core:OnEnable()
 	LQT = LibStub('LibQTip-1.0')
+	
+	self.instanceInfoTime = false
+	self.vpResetTime = false
 
 	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
+	self.fontObjects = { }
 	for class,color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower()
 		if class == 'deathknight' then
 			class = 'death knight'
 		end
 		
-		fontObjects[class] = CreateFont('ClassFont' .. class)
-		fontObjects[class]:CopyFontObject(GameTooltipText)
-		fontObjects[class]:SetTextColor(color.r, color.g, color.b)
+		self.fontObjects[class] = CreateFont('ClassFont' .. class)
+		self.fontObjects[class]:CopyFontObject(GameTooltipText)
+		self.fontObjects[class]:SetTextColor(color.r, color.g, color.b)
 	end
 	
-	fontObjects['green'] = CreateFont('FlagFontGreen')
-	fontObjects['green']:CopyFontObject(GameTooltipText)
-	fontObjects['green']:SetTextColor(0, 255, 0)
+	self.fontObjects['green'] = CreateFont('FlagFontGreen')
+	self.fontObjects['green']:CopyFontObject(GameTooltipText)
+	self.fontObjects['green']:SetTextColor(0, 255, 0)
 	
-	fontObjects['red'] = CreateFont('FlagFontRed')
-	fontObjects['red']:CopyFontObject(GameTooltipText)
-	fontObjects['red']:SetTextColor(255, 0, 0)
+	self.fontObjects['red'] = CreateFont('FlagFontRed')
+	self.fontObjects['red']:CopyFontObject(GameTooltipText)
+	self.fontObjects['red']:SetTextColor(255, 0, 0)
 	
 	-- Setup LDB
 	LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
@@ -155,10 +156,10 @@ function core:OnEnable()
 				end
 			else
 				-- Cycle through our sort options
-				if db.profile.sortType == 1 then
+				if self.db.profile.sortType == 1 then
 					db.profile.sortType = 2
 					core:DrawTooltip()
-				elseif db.profile.sortType == 2 then
+				elseif self.db.profile.sortType == 2 then
 					db.profile.sortType = 3
 					core:DrawTooltip()
 				else
@@ -170,20 +171,20 @@ function core:OnEnable()
 		OnEnter = function(self)
 			core:DrawTooltip()
 			
-			tooltip:SmartAnchorTo(self) 
-			tooltip:Show() 
+			core.tooltip:SmartAnchorTo(self) 
+			core.tooltip:Show() 
 		end,
 		OnLeave = function(self) 
-			LQT:Release(tooltip) 
-			tooltip = nil 
+			LQT:Release(core.tooltip) 
+			core.tooltip = nil 
 		end,		
 	})
 	
 	-- Deal with minimap
 	LDBIcon = LibStub('LibDBIcon-1.0')
-	LDBIcon:Register('ChoreTracker', LDB, db.profile.minimap)
+	LDBIcon:Register('ChoreTracker', LDB, self.db.profile.minimap)
 	
-	if db.profile.minimap.hide then
+	if self.db.profile.minimap.hide then
 		LDBIcon:Hide('ChoreTracker')
 	else
 		LDBIcon:Show('ChoreTracker')
@@ -226,7 +227,8 @@ function core:CALENDAR_UPDATE_EVENT_LIST()
 	core:GetNextVPReset()
 end
 
-function core:UPDATE_INSTANCE_INFO()	
+function core:UPDATE_INSTANCE_INFO()
+	self.instanceInfoTime = time()
 	core:UpdateRaidLockouts()
 end
 
@@ -253,22 +255,22 @@ function core:UpdateValorPoints()
 	local realm = GetRealmName()
 	local name = UnitName('player')
 	
-	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
+	local _, _, _, earnedThisWeek = GetCurrencyInfo(396)
 	
-	if db.global[realm][name].valorPoints == nil then
-		db.global[realm][name].valorPoints = {}
+	if self.db.global[realm][name].valorPoints == nil then
+		self.db.global[realm][name].valorPoints = {}
 	end
-	db.global[realm][name].valorPoints.points = earnedThisWeek
-	if vpResetTime ~= nil then
-		db.global[realm][name].valorPoints.resetTime = vpResetTime
+	self.db.global[realm][name].valorPoints.points = earnedThisWeek
+	if vpResetTime ~= false then
+		self.db.global[realm][name].valorPoints.resetTime = self.vpResetTime
 	end
 end
 
 function core:ResetValorPoints()
-	for realm,realmTable in pairs(db.global) do
+	for realm,realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
-			if db.global[realm][name].valorPoints.resetTime < time() then
-				db.global[realm][name].valorPoints = {
+			if self.db.global[realm][name].valorPoints.resetTime < time() then
+				self.db.global[realm][name].valorPoints = {
 					points = 0,
 					resetTime = 0,					
 				}
@@ -285,22 +287,22 @@ function core:UpdateRaidLockouts()
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
 		
-		if db.profile.instances[instanceName] ~= nil then
+		if self.db.profile.instances[instanceName] ~= nil then
 			if instanceReset > 0 then
-				db.global[realm][name].lockouts[instanceName] = {}
-				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
-				db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
+				self.db.global[realm][name].lockouts[instanceName] = {}
+				self.db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
+				self.db.global[realm][name].lockouts[instanceName].resetTime = self.instanceInfoTime + instanceReset
 			end
 		end
 	end
 end
 
 function core:ResetRaidLockouts()
-	for realm,realmTable in pairs(db.global) do
+	for realm,realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
-			for instance,instanceTable in pairs(db.global[realm][name].lockouts) do
+			for instance,instanceTable in pairs(self.db.global[realm][name].lockouts) do
 				if instanceTable.resetTime < time() then
-					db.global[realm][name].lockouts[instance] = nil
+					self.db.global[realm][name].lockouts[instance] = nil
 				end
 			end
 		end
@@ -336,13 +338,13 @@ function core:DrawInstanceOptions()
 		},
 	}
 	local i = 1
-	for instance, abbreviation in pairs(db.profile.instances) do
-		if db.profile.instances[instance].removed == false then
+	for instance, abbreviation in pairs(self.db.profile.instances) do
+		if self.db.profile.instances[instance].removed == false then
 			options.args.instances.args[instance .. 'Enable'] = {
 				type = 'toggle',
 				name = instance,
 				order = 4 * i,
-				get = function(info) return db.profile.instances[instance].enable end,
+				get = function(info) return self.db.profile.instances[instance].enable end,
 				set = function(info, value) 
 					db.profile.instances[instance].enable = value
 					core:DrawInstanceOptions()
@@ -353,8 +355,8 @@ function core:DrawInstanceOptions()
 				name = '',
 				order = 4 * i + 1,
 				width = 'half',
-				get = function(info) return db.profile.instances[instance].abbreviation end,
-				set = function(info, value) db.profile.instances[instance].abbreviation = value end,
+				get = function(info) return self.db.profile.instances[instance].abbreviation end,
+				set = function(info, value) self.db.profile.instances[instance].abbreviation = value end,
 			}
 			options.args.instances.args[instance .. 'Remove'] = {
 				type = 'execute',
@@ -423,10 +425,9 @@ function core:GetNextVPReset()
 		resetDate.min = resetTime.min
 		resetDate.sec = resetTime.sec
 
-		vpResetTime = time(resetDate)
+		self.vpResetTime = time(resetDate)
 	else
 		print('Error: Could not caculate the next VP Reset Time.')
-		vpResetTime = nil
 	end
 end
 
@@ -474,46 +475,47 @@ function core:DrawTooltip()
 	local level = UnitLevel('player')
 	if level == 85 then
 		-- Should not update without being 100% sure our raid info is correct
-		--core:UpdateChores()
+		core:UpdateValorPoints()
+		core:UpdateRaidLockouts()
 	end
 	
-	if tooltip then
-		tooltip:ClearAllPoints()
-		tooltip:Clear()
-		tooltip = nil 
+	if self.tooltip then
+		self.tooltip:ClearAllPoints()
+		self.tooltip:Clear()
+		self.tooltip = nil 
 	end
 	local columnCount = 2
-	for instance in pairs(db.profile.instances) do
-		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
+	for instance in pairs(self.db.profile.instances) do
+		if self.db.profile.instances[instance].enable == true and self.db.profile.instances[instance].removed == false then
 			columnCount = columnCount + 1
 		end
 	end
-	tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
+	self.tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
 
 	-- Populate a table with the information we want for our tooltip
 	local tooltipTable = {}
 	local currentTable = {}
-	for realm in pairs(db.global) do
-		for name in pairs(db.global[realm]) do
-			local valorPoints = db.global[realm][name].valorPoints.points
-			local class = db.global[realm][name].class
+	for realm in pairs(self.db.global) do
+		for name in pairs(self.db.global[realm]) do
+			local valorPoints = self.db.global[realm][name].valorPoints.points
+			local class = self.db.global[realm][name].class
 			
 			if valorPoints == nil then
 				valorPoints = 0
 			end
 			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints }
 			
-			for instance in pairs(db.profile.instances) do
+			for instance in pairs(self.db.profile.instances) do
 				local defeatedBosses
-				if db.global[realm][name].lockouts[instance] ~= nil then
-					defeatedBosses = db.global[realm][name].lockouts[instance].defeatedBosses
+				if self.db.global[realm][name].lockouts[instance] ~= nil then
+					defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
 				else
 					defeatedBosses = 0
 				end
 				characterTable[instance] = defeatedBosses
 			end
 
-			if name == UnitName('player') and db.profile.currentOnTop == true then
+			if name == UnitName('player') and self.db.profile.currentOnTop == true then
 				currentTable = characterTable
 			else
 				table.insert(tooltipTable, characterTable)
@@ -524,18 +526,18 @@ function core:DrawTooltip()
 	-- Sort table according to options.
 	local sortTooltip = function(a, b)
 		local aValue, bValue
-		if db.profile.sortType == 1 then
+		if self.db.profile.sortType == 1 then
 			aValue = a.name:lower()
 			bValue = b.name:lower()
-		elseif db.profile.sortType == 2 then
+		elseif self.db.profile.sortType == 2 then
 			aValue = a.valorPoints
 			bValue = b.valorPoints
-		elseif db.profile.sortType == 3 then
+		elseif self.db.profile.sortType == 3 then
 			aValue = a.class
 			bValue = b.class
 		end
 		
-		if db.profile.sortDirection == 1 then
+		if self.db.profile.sortDirection == 1 then
 			return aValue < bValue
 		else
 			return aValue > bValue
@@ -544,7 +546,7 @@ function core:DrawTooltip()
 	table.sort(tooltipTable, sortTooltip )
 	
 	-- Toss the current character on top if it is set that way
-	if db.profile.currentOnTop == true then
+	if self.db.profile.currentOnTop == true then
 		table.insert(tooltipTable, 1, currentTable)
 	end
 	
@@ -552,49 +554,49 @@ function core:DrawTooltip()
 	-- Draw tooltip table then looped through.
 	
 	-- Draw the tooltip
-	tooltip:AddHeader('')
-	tooltip:SetScale(1)
-	local valorPointColumn = tooltip:AddColumn('LEFT')
-	tooltip:SetCell(1, 1, '')
-	tooltip:SetCell(1, 2, 'VP')
+	self.tooltip:AddHeader('')
+	self.tooltip:SetScale(1)
+	local valorPointColumn = self.tooltip:AddColumn('LEFT')
+	self.tooltip:SetCell(1, 1, '')
+	self.tooltip:SetCell(1, 2, 'VP')
 	
 	-- Build and sort our headers
 	local headerTable = { }
 	--headerTable['Valor Points'] = { abbreviation = 'VP', enable = true, removed = false, }
-	for instance, instanceInfo in pairs(db.profile.instances) do
-		if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
+	for instance, instanceInfo in pairs(self.db.profile.instances) do
+		if self.db.profile.instances[instance].enable == true and self.db.profile.instances[instance].removed == false then
 			table.insert(headerTable,instanceInfo)
 		end
 	end
 	
 	local nextColumn = 3
 	for instance,instanceInfo in pairs(headerTable) do
-		tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
+		self.tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
 		nextColumn = nextColumn + 1
 	end
 	
 	for _,information in pairs(tooltipTable) do
-		local characterLine = tooltip:AddLine('')
-		tooltip:SetCell(characterLine, 1, information.name, fontObjects[information.class], 'LEFT')
+		local characterLine = self.tooltip:AddLine('')
+		self.tooltip:SetCell(characterLine, 1, information.name, self.fontObjects[information.class], 'LEFT')
 		
 		local valorPointColor
 		if information.valorPoints == 980 then
-			valorPointColor = fontObjects['red']
+			valorPointColor = self.fontObjects['red']
 		else
-			valorPointColor = fontObjects['green']
+			valorPointColor = self.fontObjects['green']
 		end
-		tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
+		self.tooltip:SetCell(characterLine, 2, information.valorPoints, valorPointColor, 'RIGHT')
 		
 		local nextColumn = 3
-		for instance, abbreviation in pairs(db.profile.instances) do
-			if db.profile.instances[instance].enable == true and db.profile.instances[instance].removed == false then
+		for instance, abbreviation in pairs(self.db.profile.instances) do
+			if self.db.profile.instances[instance].enable == true and self.db.profile.instances[instance].removed == false then
 				local instanceColor
 				if information[instance] == 0 then
-					instanceColor = fontObjects['green']
+					instanceColor = self.fontObjects['green']
 				else
-					instanceColor = fontObjects['red']
+					instanceColor = self.fontObjects['red']
 				end
-				tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
+				self.tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 				
 				nextColumn = nextColumn + 1
 			end
