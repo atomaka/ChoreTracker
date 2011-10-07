@@ -91,7 +91,6 @@ local options = {
 }
 
 function core:OnInitialize()
-	-- Prepare the database if necessary
 	db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
 	local level = UnitLevel('player')
@@ -203,10 +202,11 @@ function core:OnEnable()
 	local level = UnitLevel('player')
 	if level == 85 then
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
-		self:RegisterEvent('UPDATE_INSTANCE_INFO')
-		self:RegisterEvent('CHAT_MSG_CURRENCY')
+		
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
-		-- Since CHAT_MSG_CURRENCY will not fire if you have max currency
+		self:RegisterEvent('UPDATE_INSTANCE_INFO')
+		
+		self:RegisterEvent('CHAT_MSG_CURRENCY')
 		self:RegisterEvent('INSTANCE_ENCOUNTER_ENGAGE_UNIT')
 	end
 	
@@ -214,7 +214,7 @@ function core:OnEnable()
 	OpenCalendar()
 	
 	-- Reset data if necessary
-	core:ResetInstances()
+	core:ResetRaidLockouts()
 	core:ResetValorPoints()
 end
 
@@ -226,12 +226,12 @@ function core:CALENDAR_UPDATE_EVENT_LIST()
 	core:GetNextVPReset()
 end
 
-function core:UPDATE_INSTANCE_INFO()
-	core:UpdateChores()
+function core:UPDATE_INSTANCE_INFO()	
+	core:UpdateRaidLockouts()
 end
 
 function core:LFG_UPDATE_RANDOM_INFO()
-	core:UpdateChores()
+	core:UpdateValorPoints()
 end
 
 function core:CHAT_MSG_CURRENCY()
@@ -249,6 +249,66 @@ end
 
 
 --[[		FUNCTIONS		]]--
+function core:UpdateValorPoints()
+	local realm = GetRealmName()
+	local name = UnitName('player')
+	
+	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
+	
+	if db.global[realm][name].valorPoints == nil then
+		db.global[realm][name].valorPoints = {}
+	end
+	db.global[realm][name].valorPoints.points = earnedThisWeek
+	if vpResetTime ~= nil then
+		db.global[realm][name].valorPoints.resetTime = vpResetTime
+	end
+end
+
+function core:ResetValorPoints()
+	for realm,realmTable in pairs(db.global) do
+		for name in pairs(realmTable) do
+			if db.global[realm][name].valorPoints.resetTime < time() then
+				db.global[realm][name].valorPoints = {
+					points = 0,
+					resetTime = 0,					
+				}
+			end
+		end
+	end
+end
+
+function core:UpdateRaidLockouts()
+	local realm = GetRealmName()
+	local name = UnitName('player')
+	
+	local savedInstances = GetNumSavedInstances()
+	for i = 1, savedInstances do
+		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
+		
+		if db.profile.instances[instanceName] ~= nil then
+			if instanceReset > 0 then
+				db.global[realm][name].lockouts[instanceName] = {}
+				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
+				db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
+			end
+		end
+	end
+end
+
+function core:ResetRaidLockouts()
+	for realm,realmTable in pairs(db.global) do
+		for name in pairs(realmTable) do
+			for instance,instanceTable in pairs(db.global[realm][name].lockouts) do
+				if instanceTable.resetTime < time() then
+					db.global[realm][name].lockouts[instance] = nil
+				end
+			end
+		end
+	end
+end
+
+
+
 function core:DrawInstanceOptions()
 	-- Redraw our instance options everytime they are updated.
 	options.args.instances.args = { 
@@ -313,71 +373,6 @@ function core:DrawInstanceOptions()
 				order = 4 * i + 3,
 			}
 			i = i + 1
-		end
-	end
-end
-
-function core:UpdateChores()
-	-- Reset data if necessary
-	core:ResetInstances()
-	core:ResetValorPoints()
-
-	local realm = GetRealmName()
-	local name = UnitName('player')
-	local _,_,_,earnedThisWeek = GetCurrencyInfo(396)
-
-	-- Store Valor Points if we were able to establish a reset time.
-	-- Try to alleviate issues with vpResetTime not getting set
-	-- by updating vp regardless and assuming previous time is still
-	-- correct.
-	if db.global[realm][name].valorPoints == nil then
-		db.global[realm][name].valorPoints = {}
-	end
-	db.global[realm][name].valorPoints.points = earnedThisWeek
-	if vpResetTime ~= nil then
-		db.global[realm][name].valorPoints.resetTime = vpResetTime
-	end
-
-	-- Store Saved Instances; sometimes, there can be two lockouts to the same instance
-	local savedInstances = GetNumSavedInstances()
-	for i = 1, savedInstances do
-		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
-		
-		if db.profile.instances[instanceName] ~= nil then
-			if instanceReset > 0 then
-				db.global[realm][name].lockouts[instanceName] = {}
-				db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
-				db.global[realm][name].lockouts[instanceName].resetTime = time() + instanceReset
-			-- Let's not delete instances with no lockout for now.  ResetInstances() should take care of this
-			-- and it solves an issue with two lockouts to the same instance being listed.
-			--else
-			--	db.global[realm][name].lockouts[instanceName] = nil
-			end
-		end
-	end
-end
-
-function core:ResetInstances()
-	for realm,realmTable in pairs(db.global) do
-		for name in pairs(realmTable) do
-			for instance,instanceTable in pairs(db.global[realm][name].lockouts) do
-				if instanceTable.resetTime < time() then
-					db.global[realm][name].lockouts[instance] = nil
-				end
-			end
-		end
-	end
-end
-
-function core:ResetValorPoints()
-	for realm,realmTable in pairs(db.global) do
-		for name in pairs(realmTable) do
-			if db.global[realm][name].valorPoints.resetTime < time() then
-				db.global[realm][name].valorPoints = {
-					valorPoints = 0,
-					resetTime = 0,					
-				}
-			end
 		end
 	end
 end
@@ -478,7 +473,8 @@ function core:DrawTooltip()
 	-- UpdateChores before we show the tooltip to make sure we have the most recent data
 	local level = UnitLevel('player')
 	if level == 85 then
-		core:UpdateChores()
+		-- Should not update without being 100% sure our raid info is correct
+		--core:UpdateChores()
 	end
 	
 	if tooltip then
