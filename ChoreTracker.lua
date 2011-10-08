@@ -90,25 +90,27 @@ local options = {
 function core:OnInitialize()
 	self.db = LibStub('AceDB-3.0'):New('ChoreTrackerDB', defaults, 'Default')
 	
-	local level = UnitLevel('player')
-	local realm = GetRealmName()
-	local name = UnitName('player')
-	if self.db.global[realm] == nil then
-		self.db.global[realm] = {}
+	self.character = {
+		name = UnitName('player'),
+		level = UnitLevel('player'),
+		realm = GetRealmName(),
+		class = UnitClass('player'),
+	}
+	self.character.class = self.character.class:lower():gsub("^%s*(.-)%s*$", "%1")
+	
+	if self.db.global[self.character.realm] == nil then
+		self.db.global[self.character.realm] = {}
 	end
 	
-	if self.db.global[realm][name] == nil and level == 85 then
-		self.db.global[realm][name] = {}
+	if self.db.global[self.character.realm][self.character.name] == nil and self.character.level == 85 then
+		self.db.global[self.character.realm][self.character.name] = {}
 		
-		local class = UnitClass('player')
-		class = class:lower():gsub("^%s*(.-)%s*$", "%1")
-		
-		self.db.global[realm][name].class = class
-		self.db.global[realm][name].valorPoints = {
+		self.db.global[self.character.realm][self.character.name].class = self.character.class
+		self.db.global[self.character.realm][self.character.name].valorPoints = {
 			points = 0,
 			resetTime = 0,
 		}
-		self.db.global[realm][name].lockouts = {}
+		self.db.global[self.character.realm][self.character.name].lockouts = {}
 	end
 end
 
@@ -120,7 +122,7 @@ function core:OnEnable()
 
 	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
 	self.fontObjects = { }
-	for class,color in pairs(RAID_CLASS_COLORS) do
+	for class, color in pairs(RAID_CLASS_COLORS) do
 		class = class:lower():gsub("^%s*(.-)%s*$", "%1")
 		
 		self.fontObjects[class] = CreateFont('ClassFont' .. class)
@@ -194,8 +196,7 @@ function core:OnEnable()
 	options.args.profile = LibStub('AceDBOptions-3.0'):GetOptionsTable(db)
 	
 	-- Register events
-	local level = UnitLevel('player')
-	if level == 85 then
+	if self.character.level == 85 then
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
@@ -246,22 +247,19 @@ end
 
 --[[		FUNCTIONS		]]--
 function core:UpdateValorPoints()
-	local realm = GetRealmName()
-	local name = UnitName('player')
-	
 	local _, _, _, earnedThisWeek = GetCurrencyInfo(396)
 	
-	if self.db.global[realm][name].valorPoints == nil then
-		self.db.global[realm][name].valorPoints = {}
+	if self.db.global[self.character.realm][self.character.name].valorPoints == nil then
+		self.db.global[self.character.realm][self.character.name].valorPoints = {}
 	end
-	self.db.global[realm][name].valorPoints.points = earnedThisWeek
-	if vpResetTime ~= false then
-		self.db.global[realm][name].valorPoints.resetTime = self.vpResetTime
+	self.db.global[self.character.realm][self.character.name].valorPoints.points = earnedThisWeek
+	if self.vpResetTime ~= false then
+		self.db.global[self.character.realm][self.character.name].valorPoints.resetTime = self.vpResetTime
 	end
 end
 
 function core:ResetValorPoints()
-	for realm,realmTable in pairs(self.db.global) do
+	for realm, realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
 			if self.db.global[realm][name].valorPoints.resetTime < time() then
 				self.db.global[realm][name].valorPoints = {
@@ -274,18 +272,15 @@ function core:ResetValorPoints()
 end
 
 function core:UpdateRaidLockouts()
-	local realm = GetRealmName()
-	local name = UnitName('player')
-	
 	local savedInstances = GetNumSavedInstances()
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
 		
 		if self.db.profile.instances[instanceName] ~= nil then
 			if instanceReset > 0 then
-				self.db.global[realm][name].lockouts[instanceName] = {}
-				self.db.global[realm][name].lockouts[instanceName].defeatedBosses = defeatedBosses
-				self.db.global[realm][name].lockouts[instanceName].resetTime = self.instanceInfoTime + instanceReset
+				self.db.global[self.character.realm][self.character.name].lockouts[instanceName] = {}
+				self.db.global[self.character.realm][self.character.name].lockouts[instanceName].defeatedBosses = defeatedBosses
+				self.db.global[self.character.realm][self.character.name].lockouts[instanceName].resetTime = self.instanceInfoTime + instanceReset
 			end
 		end
 	end
@@ -344,7 +339,7 @@ function core:DrawInstanceOptions()
 					core:DrawInstanceOptions()
 				end,
 			}
-			options.args.instances.args[instance] = {
+			options.args.instances.args[instance .. 'Abbreviation'] = {
 				type = 'input',
 				name = '',
 				order = 4 * i + 1,
@@ -427,8 +422,7 @@ end
 
 function core:DrawTooltip()
 	-- UpdateChores before we show the tooltip to make sure we have the most recent data
-	local level = UnitLevel('player')
-	if level == 85 then
+	if self.character.level == 85 then
 		-- Should not update without being 100% sure our raid info is correct
 		core:UpdateValorPoints()
 		core:UpdateRaidLockouts()
