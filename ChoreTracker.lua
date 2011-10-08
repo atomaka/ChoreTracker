@@ -8,6 +8,9 @@ local L = LibStub('AceLocale-3.0'):GetLocale('ChoreTracker')
 -- Get localized instances
 local Z = LibStub('LibBabble-Zone-3.0'):GetLookupTable()
 
+--
+local CURRENT_MAX_LEVEL = 85
+
 local defaults = {
 	global = {},
 	profile = {
@@ -93,16 +96,16 @@ function core:OnInitialize()
 	self.character = {
 		name = UnitName('player'),
 		level = UnitLevel('player'),
-		realm = GetRealmName(),
 		class = UnitClass('player'),
+		realm = GetRealmName(),
 	}
-	self.character.class = self.character.class:lower():gsub("^%s*(.-)%s*$", "%1")
+	self.character.class = self.character.class:lower():gsub("%s*(.-)%s*", "%1")
 	
 	if self.db.global[self.character.realm] == nil then
 		self.db.global[self.character.realm] = {}
 	end
 	
-	if self.db.global[self.character.realm][self.character.name] == nil and self.character.level == 85 then
+	if self.db.global[self.character.realm][self.character.name] == nil and self.character.level == CURRENT_MAX_LEVEL then
 		self.db.global[self.character.realm][self.character.name] = {}
 		
 		self.db.global[self.character.realm][self.character.name].class = self.character.class
@@ -123,7 +126,7 @@ function core:OnEnable()
 	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
 	self.fontObjects = { }
 	for class, color in pairs(RAID_CLASS_COLORS) do
-		class = class:lower():gsub("^%s*(.-)%s*$", "%1")
+		class = class:lower()
 		
 		self.fontObjects[class] = CreateFont('ClassFont' .. class)
 		self.fontObjects[class]:CopyFontObject(GameTooltipText)
@@ -137,6 +140,15 @@ function core:OnEnable()
 	self.fontObjects['red'] = CreateFont('FlagFontRed')
 	self.fontObjects['red']:CopyFontObject(GameTooltipText)
 	self.fontObjects['red']:SetTextColor(255, 0, 0)
+	
+	-- Setup instance stuff for options
+	core:DrawInstanceOptions()
+	
+	-- Add options to Interface Panel
+	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
+	local ACD = LibStub('AceConfigDialog-3.0')
+	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
+	options.args.profile = LibStub('AceDBOptions-3.0'):GetOptionsTable(self.db)
 	
 	-- Setup LDB
 	LDB = LibStub('LibDataBroker-1.1'):NewDataObject('ChoreTracker', {
@@ -152,14 +164,14 @@ function core:OnEnable()
 				end
 			else
 				-- Cycle through our sort options
-				if self.db.profile.sortType == 1 then
-					db.profile.sortType = 2
+				if core.db.profile.sortType == 1 then
+					core.db.profile.sortType = 2
 					core:DrawTooltip()
-				elseif self.db.profile.sortType == 2 then
-					db.profile.sortType = 3
+				elseif core.db.profile.sortType == 2 then
+					core.db.profile.sortType = 3
 					core:DrawTooltip()
 				else
-					db.profile.sortType = 1
+					core.db.profile.sortType = 1
 					core:DrawTooltip()
 				end
 			end	
@@ -186,17 +198,8 @@ function core:OnEnable()
 		LDBIcon:Show('ChoreTracker')
 	end
 	
-	-- Setup instance stuff for options
-	core:DrawInstanceOptions()
-	
-	-- Add options to Interface Panel
-	LibStub('AceConfigRegistry-3.0'):RegisterOptionsTable('ChoreTracker', options)
-	local ACD = LibStub('AceConfigDialog-3.0')
-	ACD:AddToBlizOptions('ChoreTracker', 'ChoreTracker')
-	options.args.profile = LibStub('AceDBOptions-3.0'):GetOptionsTable(db)
-	
 	-- Register events
-	if self.character.level == 85 then
+	if self.character.level == CURRENT_MAX_LEVEL then
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
@@ -261,11 +264,13 @@ end
 function core:ResetValorPoints()
 	for realm, realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
-			if self.db.global[realm][name].valorPoints.resetTime < time() then
-				self.db.global[realm][name].valorPoints = {
-					points = 0,
-					resetTime = 0,					
-				}
+			if self.vpResetTime ~= false then
+				if self.db.global[realm][name].valorPoints.resetTime < time() then
+					self.db.global[realm][name].valorPoints = {
+						points = 0,
+						resetTime = 0,					
+					}
+				end
 			end
 		end
 	end
@@ -422,7 +427,7 @@ end
 
 function core:DrawTooltip()
 	-- UpdateChores before we show the tooltip to make sure we have the most recent data
-	if self.character.level == 85 then
+	if self.character.level == CURRENT_MAX_LEVEL then
 		-- Should not update without being 100% sure our raid info is correct
 		core:UpdateValorPoints()
 		core:UpdateRaidLockouts()
