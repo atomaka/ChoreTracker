@@ -94,24 +94,21 @@ function core:OnInitialize()
 	local realm = GetRealmName()
 	local name = UnitName('player')
 	if self.db.global[realm] == nil then
-		db.global[realm] = {}
+		self.db.global[realm] = {}
 	end
 	
 	if self.db.global[realm][name] == nil and level == 85 then
-		db.global[realm][name] = {}
+		self.db.global[realm][name] = {}
 		
 		local class = UnitClass('player')
-		class = class:lower()
-		if class == 'deathknight' then
-			class = 'death knight'
-		end
+		class = class:lower():gsub("^%s*(.-)%s*$", "%1")
 		
-		db.global[realm][name].class = class
-		db.global[realm][name].valorPoints = {
+		self.db.global[realm][name].class = class
+		self.db.global[realm][name].valorPoints = {
 			points = 0,
 			resetTime = 0,
 		}
-		db.global[realm][name].lockouts = {}
+		self.db.global[realm][name].lockouts = {}
 	end
 end
 
@@ -124,10 +121,7 @@ function core:OnEnable()
 	-- Setup font strings for later.  (RAID_CLASS_COLORS always indexed in English?)
 	self.fontObjects = { }
 	for class,color in pairs(RAID_CLASS_COLORS) do
-		class = class:lower()
-		if class == 'deathknight' then
-			class = 'death knight'
-		end
+		class = class:lower():gsub("^%s*(.-)%s*$", "%1")
 		
 		self.fontObjects[class] = CreateFont('ClassFont' .. class)
 		self.fontObjects[class]:CopyFontObject(GameTooltipText)
@@ -224,7 +218,7 @@ end
 
 --[[		EVENTS		]]--
 function core:CALENDAR_UPDATE_EVENT_LIST()
-	core:GetNextVPReset()
+	self.vpResetTime = core:FindLockout(Z['Baradin Hold'])
 end
 
 function core:UPDATE_INSTANCE_INFO()
@@ -320,7 +314,7 @@ function core:DrawInstanceOptions()
 			type = 'input',
 			order = 1,
 			set = function(info, value) 
-				if core:VerifyInstance(value) then 
+				if core:FindLockout(value) then 
 					db.profile.instances[value] = { }
 					db.profile.instances[value].abbreviation = string.sub(value,0,1)
 					db.profile.instances[value].enable = true
@@ -379,7 +373,7 @@ function core:DrawInstanceOptions()
 	end
 end
 
-function core:GetNextVPReset()
+function core:FindLockout(instance)
 	-- We need to have access to the instance lockouts on the calendar.
 	local currentCalendarSetting = GetCVar('calendarShowResets')
 	SetCVar('calendarShowResets', 1)
@@ -392,8 +386,8 @@ function core:GetNextVPReset()
 	local _, month, day, year = CalendarGetDate()
 	
 	local monthOffset = 0
-	local resetDate = nil
-	while resetDate == nil do
+	local resetDate = false
+	while resetDate == false do
 		local todaysEvents = CalendarGetNumDayEvents(monthOffset, day)
 
 		for i = 1,todaysEvents do
@@ -403,7 +397,7 @@ function core:GetNextVPReset()
 
 			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
 
-			if title == Z['Baradin Hold'] then
+			if title == instance then
 				resetDate = { year = year, month = month + monthOffset, day = day }
 			end
 		end
@@ -420,54 +414,15 @@ function core:GetNextVPReset()
 	SetCVar('calendarShowResets', currentCalendarSetting)
 	
 	-- And combine for the reset timestamp
-	if(resetDate ~= nil) then
+	if(resetDate ~= false) then
 		resetDate.hour = resetTime.hour
 		resetDate.min = resetTime.min
 		resetDate.sec = resetTime.sec
 
-		self.vpResetTime = time(resetDate)
+		return time(resetDate)
 	else
-		print('Error: Could not caculate the next VP Reset Time.')
+		return false
 	end
-end
-
-function core:VerifyInstance(instance)
-	-- Use a method similar to GetNextVPReset() to make sure the instance
-	-- has a lockout on the calendar
-	local currentCalendarSetting = GetCVar('calendarShowResets')
-	SetCVar('calendarShowResets', 1)
-	
-	local _, month, day, year = CalendarGetDate()
-	
-	local monthOffset = 0
-	local resetDate = nil
-	while resetDate == nil do
-		local todaysEvents = CalendarGetNumDayEvents(monthOffset, day)
-
-		for i = 1,todaysEvents do
-			if todaysEvents == 0 then 
-				break 
-			end
-
-			local title,hour,minute = CalendarGetDayEvent(monthOffset, day, i)
-
-			if title == instance then
-				return true
-			end
-		end
-		
-		day = day + 1
-		if day > 31 then
-			if monthOffset == 1 then break end
-			day = 1
-			monthOffset = 1
-		end
-	end
-	
-	-- Reset the calendar to the original settings
-	SetCVar('calendarShowResets', currentCalendarSetting)
-	
-	return false
 end
 
 function core:DrawTooltip()
