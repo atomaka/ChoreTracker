@@ -315,10 +315,10 @@ function core:DrawInstanceOptions()
 			order = 1,
 			set = function(info, value) 
 				if core:FindLockout(value) then 
-					db.profile.instances[value] = { }
-					db.profile.instances[value].abbreviation = string.sub(value,0,1)
-					db.profile.instances[value].enable = true
-					db.profile.instances[value].removed = false
+					self.db.profile.instances[value] = { }
+					self.db.profile.instances[value].abbreviation = string.sub(value,0,1)
+					self.db.profile.instances[value].enable = true
+					self.db.profile.instances[value].removed = false
 					core:DrawInstanceOptions()
 				else 
 					print('Invalid instance') 
@@ -340,7 +340,7 @@ function core:DrawInstanceOptions()
 				order = 4 * i,
 				get = function(info) return self.db.profile.instances[instance].enable end,
 				set = function(info, value) 
-					db.profile.instances[instance].enable = value
+					self.db.profile.instances[instance].enable = value
 					core:DrawInstanceOptions()
 				end,
 			}
@@ -359,7 +359,7 @@ function core:DrawInstanceOptions()
 				width = 'half',
 				confirm = true,
 				func = function() 
-					db.profile.instances[instance].removed = true 
+					self.db.profile.instances[instance].removed = true 
 					core:DrawInstanceOptions()
 				end,
 			}
