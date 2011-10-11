@@ -264,13 +264,11 @@ end
 function core:ResetValorPoints()
 	for realm, realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
-			if self.vpResetTime ~= false then
-				if self.db.global[realm][name].valorPoints.resetTime < time() then
-					self.db.global[realm][name].valorPoints = {
-						points = 0,
-						resetTime = 0,					
-					}
-				end
+			if self.db.global[realm][name].valorPoints.resetTime < time() then
+				self.db.global[realm][name].valorPoints = {
+					points = 0,
+					resetTime = 0,
+				}
 			end
 		end
 	end
