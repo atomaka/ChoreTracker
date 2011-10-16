@@ -20,6 +20,7 @@ local defaults = {
 		sortType = 1,
 		sortDirection = 1,
 		currentOnTop = false,
+		showServer = false,
 		instances = {
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
 			[Z['Firelands']] = { abbreviation = 'FL', enable = true, removed = false, }, 
@@ -78,6 +79,20 @@ local options = {
 					values = { L['Ascending'], L['Descending'] },
 					get = function(info) return core.db.profile.sortDirection end,
 					set = function(info, value) core.db.profile.sortDirection = value end,
+				},
+				otherHeader = {
+					name = '',
+					type = 'header',
+					order = 20,
+				},
+				showServer = {
+					name = L['Show Server'],
+					desc = L['Show the server abbreviation next to a character name in the list.'],
+					type = 'toggle',
+					width = 'full',
+					order = 21,
+					get = function(info) return core.db.profile.showServer end,
+					set = function(info, value) core.db.profile.showServer = value end,
 				},
 			},
 		},
@@ -528,6 +543,10 @@ function core:DrawTooltip()
 	end
 	
 	for _,information in pairs(tooltipTable) do
+		if self.db.profile.showServer then
+			information.name = information.name .. '-' .. string.sub(information.realm,0,3)
+		end
+		
 		local characterLine = self.tooltip:AddLine('')
 		self.tooltip:SetCell(characterLine, 1, information.name, self.fontObjects[information.class], 'LEFT')
 		
