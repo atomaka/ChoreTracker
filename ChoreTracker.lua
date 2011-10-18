@@ -215,6 +215,8 @@ function core:OnEnable()
 	
 	-- Register events
 	if self.character.level == CURRENT_MAX_LEVEL then
+        self:RegisterEvent('PLAYER_ENTERING_WORLD')
+    
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
@@ -236,6 +238,10 @@ end
 
 
 --[[		EVENTS		]]--
+function core:PLAYER_ENTERING_WORLD()
+	self.vpResetTime = core:FindLockout(Z['Baradin Hold'])
+end
+
 function core:CALENDAR_UPDATE_EVENT_LIST()
 	self.vpResetTime = core:FindLockout(Z['Baradin Hold'])
 end
