@@ -30,6 +30,11 @@ local defaults = {
 			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = false, removed = false, }, 
 			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = false, removed = false, }, 
 		},
+		lfrs = {
+			-- needs localized
+			['The Siege of Wyrmrest Temple'] = { abbreviation = 'SoWT', enable = true, removed = false, },
+			['Fall of Deathwing'] = { abbreviation = 'FoD', enable = true, removed = false, },
+		}
 	},
 }
 
@@ -101,9 +106,9 @@ local options = {
 		instances = {
 			name = L['Instances'],
 			type = 'group',
-			order = 2,
+			order = 20,
 			args = { },
-		}
+		},
 	},
 }
 
@@ -132,6 +137,13 @@ function core:OnInitialize()
 		}
 		self.db.global[self.character.realm][self.character.name].lockouts = {}
 	end
+
+	if self.db.global[self.character.realm][self.character.name].lfrs == nil and self.character.level == CURRENT_MAX_LEVEL then
+		self.db.global[self.character.realm][self.character.name].lfrs = {}
+	end
+
+	-- Add LFR stuff to profile if it isn't there already
+	core:LFRProfileUpdate()
 end
 
 function core:OnEnable()
@@ -251,6 +263,7 @@ end
 function core:UPDATE_INSTANCE_INFO()
 	self.instanceInfoTime = time()
 	core:UpdateRaidLockouts()
+	core:UpdateLFRLockouts()
 end
 
 function core:LFG_UPDATE_RANDOM_INFO()
@@ -267,8 +280,6 @@ function core:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 	RequestRaidInfo()
 	RequestLFDPlayerLockInfo()
 end
-
-
 
 
 --[[		FUNCTIONS		]]--
@@ -324,6 +335,33 @@ function core:ResetRaidLockouts()
 	end
 end
 
+function core:UpdateLFRLockouts()
+	local RFDungeonCount = GetNumRFDungeons()
+
+	for i = 1, RFDungeonCount do
+		id, instanceName = GetRFDungeonInfo(i)
+
+		_, defeatedBosses = GetLFGDungeonNumEncounters(id)
+
+		if self.db.profile.lfrs[instanceName] ~= nil then
+			self.db.global[self.character.realm][self.character.name].lfrs[instanceName] = {}
+			self.db.global[self.character.realm][self.character.name].lfrs[instanceName].defeatedBosses = defeatedBosses
+			self.db.global[self.character.realm][self.character.name].lfrs[instanceName].resetTime = self.vpResetTime
+		end
+	end
+end
+
+function core:ResetLFRLockouts()
+	for realm,realmTable in pairs(self.db.global) do
+		for name in pairs(realmTable) do
+			for instance,instanceTable in pairs(self.db.global[realm][name].lfrs) do
+				if instanceTable.resetTime < time() then
+					self.db.global[realm][name].lfrs[instance] = nil
+				end
+			end
+		end
+	end
+end
 
 
 function core:DrawInstanceOptions()
@@ -346,10 +384,15 @@ function core:DrawInstanceOptions()
 				end
 			end,
 		},
+		lfrsHeader = {
+			name = L['Looking for Raid Instances'],
+			type = 'header',
+			order = 100,
+		},
 		instancesHeader = {
 			name = L['Instances'],
 			type = 'header',
-			order = 2,
+			order = 500,
 		},
 	}
 	local i = 1
@@ -358,7 +401,7 @@ function core:DrawInstanceOptions()
 			options.args.instances.args[instance .. 'Enable'] = {
 				type = 'toggle',
 				name = instance,
-				order = 4 * i,
+				order = 500 + (5 * i) + 0,
 				get = function(info) return self.db.profile.instances[instance].enable end,
 				set = function(info, value) 
 					self.db.profile.instances[instance].enable = value
@@ -368,7 +411,7 @@ function core:DrawInstanceOptions()
 			options.args.instances.args[instance .. 'Abbreviation'] = {
 				type = 'input',
 				name = '',
-				order = 4 * i + 1,
+				order = 500 + (5 * i) + 1,
 				width = 'half',
 				get = function(info) return self.db.profile.instances[instance].abbreviation end,
 				set = function(info, value) self.db.profile.instances[instance].abbreviation = value end,
@@ -376,7 +419,7 @@ function core:DrawInstanceOptions()
 			options.args.instances.args[instance .. 'Remove'] = {
 				type = 'execute',
 				name = L['Remove'],
-				order = 4 * i + 2,
+				order = 500 + (5 * i) + 2,
 				width = 'half',
 				confirm = true,
 				func = function() 
@@ -387,7 +430,48 @@ function core:DrawInstanceOptions()
 			options.args.instances.args[instance .. 'Spacer'] = {
 				type = 'description',
 				name = '',
-				order = 4 * i + 3,
+				order = 500 + (5 * i) + 3,
+			}
+			i = i + 1
+		end
+	end
+
+	i = 1
+	for instance, abbreviation in pairs(self.db.profile.lfrs) do
+		if self.db.profile.lfrs[instance].removed == false then
+			options.args.instances.args[instance .. 'Enable'] = {
+				type = 'toggle',
+				name = instance,
+				order = 100 + (5 * i) + 0,
+				get = function(info) return self.db.profile.lfrs[instance].enable end,
+				set = function(info, value) 
+					self.db.profile.lfrs[instance].enable = value
+					core:DrawInstanceOptions()
+				end,
+			}
+			options.args.instances.args[instance .. 'Abbreviation'] = {
+				type = 'input',
+				name = '',
+				order = 100 + (5 * i) + 1,
+				width = 'half',
+				get = function(info) return self.db.profile.lfrs[instance].abbreviation end,
+				set = function(info, value) self.db.profile.lfrs[instance].abbreviation = value end,
+			}
+			options.args.instances.args[instance .. 'Remove'] = {
+				type = 'execute',
+				name = L['Remove'],
+				order = 100 + (5 * i) + 2,
+				width = 'half',
+				confirm = true,
+				func = function() 
+					self.db.profile.lfrs[instance].removed = true 
+					core:DrawInstanceOptions()
+				end,
+			}
+			options.args.instances.args[instance .. 'Spacer'] = {
+				type = 'description',
+				name = '',
+				order = 100 + (5 * i) + 3,
 			}
 			i = i + 1
 		end
@@ -465,6 +549,11 @@ function core:DrawTooltip()
 			columnCount = columnCount + 1
 		end
 	end
+	for instance in pairs(self.db.profile.lfrs) do
+		if self.db.profile.lfrs[instance].enable == true and self.db.profile.lfrs[instance].removed == false then
+			columnCount = columnCount + 1
+		end
+	end
 	self.tooltip =  LQT:Acquire('ChoreTrackerTooltip', columnCount, 'LEFT', 'CENTER', 'RIGHT') 
 
 	-- Populate a table with the information we want for our tooltip
@@ -484,6 +573,16 @@ function core:DrawTooltip()
 				local defeatedBosses
 				if self.db.global[realm][name].lockouts[instance] ~= nil then
 					defeatedBosses = self.db.global[realm][name].lockouts[instance].defeatedBosses
+				else
+					defeatedBosses = 0
+				end
+				characterTable[instance] = defeatedBosses
+			end
+
+			for instance in pairs(self.db.profile.lfrs) do
+				local defeatedBosses
+				if self.db.global[realm][name].lfrs[instance] ~= nil then
+					defeatedBosses = self.db.global[realm][name].lfrs[instance].defeatedBosses
 				else
 					defeatedBosses = 0
 				end
@@ -543,6 +642,11 @@ function core:DrawTooltip()
 			table.insert(headerTable,instanceInfo)
 		end
 	end
+	for instance, instanceInfo in pairs(self.db.profile.lfrs) do
+		if self.db.profile.lfrs[instance].enable == true and self.db.profile.lfrs[instance].removed == false then
+			table.insert(headerTable,instanceInfo)
+		end
+	end
 	
 	local nextColumn = 3
 	for instance,instanceInfo in pairs(headerTable) do
@@ -578,6 +682,41 @@ function core:DrawTooltip()
 				self.tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
 				
 				nextColumn = nextColumn + 1
+			end
+		end
+
+		for instance, abbreviation in pairs(self.db.profile.lfrs) do
+			if self.db.profile.lfrs[instance].enable == true and self.db.profile.lfrs[instance].removed == false then
+				local instanceColor
+				if information[instance] == 0 then
+					instanceColor = self.fontObjects['green']
+				else
+					instanceColor = self.fontObjects['red']
+				end
+				self.tooltip:SetCell(characterLine, nextColumn, information[instance], instanceColor, 'RIGHT')
+				
+				nextColumn = nextColumn + 1
+			end
+		end
+	end
+end
+
+
+--[[		PROFILE UPDATES		]]--
+function core:LFRProfileUpdate()
+	print('updating lfrs')
+	for realm,realmTable in pairs(self.db.global) do
+		for name in pairs(realmTable) do
+			if self.db.global[realm][name].lfrs == nil then
+				self.db.global[realm][name].lfrs = {}
+			end
+
+			for instance in pairs(self.db.profile.lfrs) do
+				if self.db.global[realm][name].lfrs[instance] == nil then
+					self.db.global[realm][name].lfrs[instance] = {}
+					self.db.global[realm][name].lfrs[instance].defeatedBosses = 0
+					self.db.global[realm][name].lfrs[instance].resetTime = 0
+				end
 			end
 		end
 	end
