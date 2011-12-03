@@ -10,6 +10,7 @@ local Z = LibStub('LibBabble-Zone-3.0'):GetLookupTable()
 
 --
 local CURRENT_MAX_LEVEL = 85
+local MAX_VALOR_POINTS = 1000
 
 local defaults = {
 	global = {},
@@ -557,7 +558,7 @@ function core:DrawTooltip()
 		self.tooltip:SetCell(characterLine, 1, information.name, self.fontObjects[information.class], 'LEFT')
 		
 		local valorPointColor
-		if information.valorPoints == 980 then
+		if information.valorPoints == MAX_VALOR_POINTS then
 			valorPointColor = self.fontObjects['red']
 		else
 			valorPointColor = self.fontObjects['green']
