@@ -23,11 +23,12 @@ local defaults = {
 		currentOnTop = false,
 		showServer = false,
 		instances = {
+			[Z['Dragon Soul']] = { abbreviation = 'DS', enable = true, removed = false, },
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
 			[Z['Firelands']] = { abbreviation = 'FL', enable = true, removed = false, }, 
-			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = true, removed = false, }, 
-			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = true, removed = false, }, 
-			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = true, removed = false, }, 
+			[Z['The Bastion of Twilight']] = { abbreviation = 'BoT', enable = false, removed = false, }, 
+			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = false, removed = false, }, 
+			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = false, removed = false, }, 
 		},
 	},
 }
