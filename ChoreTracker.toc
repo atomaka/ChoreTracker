@@ -1,4 +1,4 @@
-## Interface: 42000
+## Interface: 43000
 ## Title: ChoreTracker
 ## Version: @project-version@
 ## Author: Gaffer
