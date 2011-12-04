@@ -234,6 +234,7 @@ function core:OnEnable()
 		self:RegisterEvent('CALENDAR_UPDATE_EVENT_LIST')
 		
 		self:RegisterEvent('LFG_UPDATE_RANDOM_INFO')
+		self:RegisterEvent('LFG_LOCK_INFO_RECEIVED')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO')
 		
 		self:RegisterEvent('CHAT_MSG_CURRENCY')
@@ -263,11 +264,14 @@ end
 function core:UPDATE_INSTANCE_INFO()
 	self.instanceInfoTime = time()
 	core:UpdateRaidLockouts()
-	core:UpdateLFRLockouts()
 end
 
 function core:LFG_UPDATE_RANDOM_INFO()
 	core:UpdateValorPoints()
+end
+
+function core:LFG_LOCK_INFO_RECEIVED()
+	core:UpdateLFRLockouts()
 end
 
 function core:CHAT_MSG_CURRENCY()
@@ -312,7 +316,7 @@ function core:UpdateRaidLockouts()
 	local savedInstances = GetNumSavedInstances()
 	for i = 1, savedInstances do
 		local instanceName, _, instanceReset, _, _, _, _, _, _, _, _, defeatedBosses = GetSavedInstanceInfo(i)
-		
+
 		if self.db.profile.instances[instanceName] ~= nil then
 			if instanceReset > 0 then
 				self.db.global[self.character.realm][self.character.name].lockouts[instanceName] = {}
@@ -536,6 +540,7 @@ function core:DrawTooltip()
 		-- Should not update without being 100% sure our raid info is correct
 		core:UpdateValorPoints()
 		core:UpdateRaidLockouts()
+		core:UpdateLFRLockouts()
 	end
 	
 	if self.tooltip then
@@ -704,7 +709,6 @@ end
 
 --[[		PROFILE UPDATES		]]--
 function core:LFRProfileUpdate()
-	print('updating lfrs')
 	for realm,realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
 			if self.db.global[realm][name].lfrs == nil then
