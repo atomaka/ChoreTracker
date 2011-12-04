@@ -155,8 +155,10 @@ function core:OnInitialize()
 		self.db.global[self.character.realm][self.character.name].lockouts = {}
 	end
 
-	if self.db.global[self.character.realm][self.character.name].lfrs == nil and self.character.level == CURRENT_MAX_LEVEL then
-		self.db.global[self.character.realm][self.character.name].lfrs = {}
+	if self.db.global[self.character.realm][self.character.name] ~= nil then
+		if self.db.global[self.character.realm][self.character.name].lfrs == nil and self.character.level == CURRENT_MAX_LEVEL then
+			self.db.global[self.character.realm][self.character.name].lfrs = {}
+		end
 	end
 
 	-- Add LFR stuff to profile if it isn't there already
