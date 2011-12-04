@@ -22,6 +22,7 @@ local defaults = {
 		sortDirection = 1,
 		currentOnTop = false,
 		showServer = false,
+		showTotalVp = true,
 		instances = {
 			[Z['Dragon Soul']] = { abbreviation = 'DS', enable = true, removed = false, },
 			[Z['Baradin Hold']] = { abbreviation = 'BH', enable = true, removed = false, }, 
@@ -39,7 +40,7 @@ local RFDungeonCount = GetNumRFDungeons()
 
 for i = 1, RFDungeonCount do
 	id, instanceName = GetRFDungeonInfo(i)
-	
+
 	defaults.profile.lfrs[instanceName] = { enable = true, removed = false, }
 	defaults.profile.lfrs[instanceName].abbreviation = string.sub(instanceName, 0, 1)
 end
@@ -107,6 +108,15 @@ local options = {
 					get = function(info) return core.db.profile.showServer end,
 					set = function(info, value) core.db.profile.showServer = value end,
 				},
+				showTotalVp = {
+					name = L['Show Total VP'],
+					desc = L['Show the total valor points for all characters in the tooltip.'],
+					type = 'toggle',
+					width = 'full',
+					order = 22,
+					get = function(info) return core.db.profile.showTotalVp end,
+					set = function(info, value) core.db.profile.showTotalVp = value end,
+				},
 			},
 		},
 		instances = {
@@ -138,6 +148,7 @@ function core:OnInitialize()
 		
 		self.db.global[self.character.realm][self.character.name].class = self.character.class
 		self.db.global[self.character.realm][self.character.name].valorPoints = {
+			total = 0,
 			points = 0,
 			resetTime = 0,
 		}
@@ -294,12 +305,13 @@ end
 
 --[[		FUNCTIONS		]]--
 function core:UpdateValorPoints()
-	local _, _, _, earnedThisWeek = GetCurrencyInfo(396)
+	local _, amount, _, earnedThisWeek = GetCurrencyInfo(396)
 	
 	if self.db.global[self.character.realm][self.character.name].valorPoints == nil then
 		self.db.global[self.character.realm][self.character.name].valorPoints = {}
 	end
 	self.db.global[self.character.realm][self.character.name].valorPoints.points = earnedThisWeek
+	self.db.global[self.character.realm][self.character.name].valorPoints.total = amount
 	if self.vpResetTime ~= false then
 		self.db.global[self.character.realm][self.character.name].valorPoints.resetTime = self.vpResetTime
 	end
@@ -309,10 +321,8 @@ function core:ResetValorPoints()
 	for realm, realmTable in pairs(self.db.global) do
 		for name in pairs(realmTable) do
 			if self.db.global[realm][name].valorPoints.resetTime < time() then
-				self.db.global[realm][name].valorPoints = {
-					points = 0,
-					resetTime = 0,
-				}
+				self.db.global[realm][name].valorPoints.points = 0
+				self.db.global[realm][name].valorPoints.resetTime = 0
 			end
 		end
 	end
@@ -574,11 +584,12 @@ function core:DrawTooltip()
 		for name in pairs(self.db.global[realm]) do
 			local valorPoints = self.db.global[realm][name].valorPoints.points
 			local class = self.db.global[realm][name].class
+			local totalVp = self.db.global[realm][name].valorPoints.total
 			
 			if valorPoints == nil then
 				valorPoints = 0
 			end
-			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints }
+			local characterTable = { name = name, realm = realm, class = class, valorPoints = valorPoints, totalVp = totalVp }
 			
 			for instance in pairs(self.db.profile.instances) do
 				local defeatedBosses
@@ -664,6 +675,11 @@ function core:DrawTooltip()
 		self.tooltip:SetCell(1, nextColumn, instanceInfo.abbreviation, nil, 'CENTER')
 		nextColumn = nextColumn + 1
 	end
+
+	if self.db.profile.showTotalVp == true then
+		self.tooltip:SetCell(1, nextColumn, 'Total VP')
+		nextColumn = nextColumn + 1
+	end
 	
 	for _,information in pairs(tooltipTable) do
 		if self.db.profile.showServer then
@@ -708,6 +724,10 @@ function core:DrawTooltip()
 				
 				nextColumn = nextColumn + 1
 			end
+		end
+
+		if self.db.profile.showTotalVp then
+			self.tooltip:SetCell(characterLine, nextColumn, information.totalVp, self.fontObjects['green'], 'RIGHT')
 		end
 	end
 end
