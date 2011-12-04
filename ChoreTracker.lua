@@ -30,13 +30,19 @@ local defaults = {
 			[Z['Blackwing Descent']] = { abbreviation = 'BWD', enable = false, removed = false, }, 
 			[Z['Throne of the Four Winds']] = { abbreviation = '4W', enable = false, removed = false, }, 
 		},
-		lfrs = {
-			-- needs localized
-			['The Siege of Wyrmrest Temple'] = { abbreviation = 'SoWT', enable = true, removed = false, },
-			['Fall of Deathwing'] = { abbreviation = 'FoD', enable = true, removed = false, },
-		}
+		lfrs = {}
 	},
 }
+
+-- Setup LFR Defaults
+local RFDungeonCount = GetNumRFDungeons()
+
+for i = 1, RFDungeonCount do
+	id, instanceName = GetRFDungeonInfo(i)
+	
+	defaults.profile.lfrs[instanceName] = { enable = true, removed = false, }
+	defaults.profile.lfrs[instanceName].abbreviation = string.sub(instanceName, 0, 1)
+end
 
 local options = {
 	name = 'ChoreTracker',
