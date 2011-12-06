@@ -266,6 +266,7 @@ function core:OnEnable()
 	-- Reset data if necessary
 	core:ResetRaidLockouts()
 	core:ResetValorPoints()
+	core:ResetLFRLockouts()
 end
 
 
