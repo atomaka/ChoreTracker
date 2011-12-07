@@ -256,6 +256,7 @@ function core:OnEnable()
 		self:RegisterEvent('LFG_LOCK_INFO_RECEIVED')
 		self:RegisterEvent('UPDATE_INSTANCE_INFO')
 		
+		self:RegisterEvent('CURRENCY_DISPLAY_UPDATE')
 		self:RegisterEvent('CHAT_MSG_CURRENCY')
 		self:RegisterEvent('INSTANCE_ENCOUNTER_ENGAGE_UNIT')
 	end
@@ -292,6 +293,10 @@ end
 
 function core:LFG_LOCK_INFO_RECEIVED()
 	core:UpdateLFRLockouts()
+end
+
+function core:CURRENCY_DISPLAY_UPDATE()
+	core:UpdateValorPoints()
 end
 
 function core:CHAT_MSG_CURRENCY()
@@ -385,7 +390,6 @@ function core:ResetLFRLockouts()
 		end
 	end
 end
-
 
 function core:DrawInstanceOptions()
 	-- Redraw our instance options everytime they are updated.
