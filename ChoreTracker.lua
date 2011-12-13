@@ -161,8 +161,11 @@ function core:OnInitialize()
 		end
 	end
 
+	-- Functions that update our profile if it's changed.
 	-- Add LFR stuff to profile if it isn't there already
 	core:LFRProfileUpdate()
+	-- Fix the compare to bool error by clearing any lfr reset time that was set to false.
+	core:LFRResetFix()
 end
 
 function core:OnEnable()
@@ -374,7 +377,9 @@ function core:UpdateLFRLockouts()
 		if self.db.profile.lfrs[instanceName] ~= nil then
 			self.db.global[self.character.realm][self.character.name].lfrs[instanceName] = {}
 			self.db.global[self.character.realm][self.character.name].lfrs[instanceName].defeatedBosses = defeatedBosses
-			self.db.global[self.character.realm][self.character.name].lfrs[instanceName].resetTime = self.vpResetTime
+			if self.vpResetTime ~= false then
+				self.db.global[self.character.realm][self.character.name].lfrs[instanceName].resetTime = self.vpResetTime
+			end
 		end
 	end
 end
@@ -753,6 +758,20 @@ function core:LFRProfileUpdate()
 					self.db.global[realm][name].lfrs[instance] = {}
 					self.db.global[realm][name].lfrs[instance].defeatedBosses = 0
 					self.db.global[realm][name].lfrs[instance].resetTime = 0
+				end
+			end
+		end
+	end
+end
+
+function core:LFRResetFix()
+	for realm,realmTable in pairs(self.db.global) do
+		for name in pairs(realmTable) do
+			for instance in pairs(self.db.profile.lfrs) do
+				if self.db.global[realm][name].lfrs[instance] ~= nil then
+					if self.db.global[realm][name].lfrs[instance].resetTime == false then
+						self.db.global[realm][name].lfrs[instance].resetTime = 0
+					end	
 				end
 			end
 		end
